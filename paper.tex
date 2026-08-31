@@ -1,0 +1,695 @@
+% ===========================================================================
+%  Nuclear Science and Engineering — classe ufficiale ANS (style/nseJournal)
+%
+%  Compilare con:   ./build.sh
+%  Figure:          make_figures.py -> figs/fig*.pdf ; flowchart.tex (TikZ)
+%  Tabelle:         make_tables.py  -> tables.tex
+%  Bibliografia:    fetch_refs.py   -> references.bib (da CrossRef)
+%                   Nessun numero è trascritto a mano nel sorgente.
+%
+%  I punti marcati  % TODO  richiedono un intervento dell'autore.
+% ===========================================================================
+\documentclass{style/nseJournal}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,calc}
+\definecolor{serpent}{HTML}{4CAF7D}
+\definecolor{fren}{HTML}{E8703A}
+\definecolor{nnc}{HTML}{3B7A99}
+\definecolor{ga}{HTML}{F2C14E}
+\definecolor{newc}{HTML}{1F6FB2}
+
+\begin{document}
+
+\title{How Far Can a Metamodel Be Trusted?\\
+Surrogate-Accelerated Optimization of the Multi-Group Energy Structure\\
+for Multi-Configuration Lead Fast Reactor Simulations}
+
+% TODO: nomi, affiliazioni ed e-mail dell'autore di riferimento
+\addAuthor{\correspondingAuthor{First Author}}{a}
+\correspondingEmail{name@polito.it}
+\addAuthor{Second Author}{a}
+\addAuthor{Third Author}{a}
+
+\addAffiliation{a}{Politecnico di Torino, Energy Department, NEMO Group\\
+Corso Duca degli Abruzzi 24, 10129 Torino, Italy}
+
+\addKeyword{energy group structure}
+\addKeyword{metamodel}
+\addKeyword{genetic algorithm}
+\addKeyword{lead-cooled fast reactor}
+\addKeyword{surrogate-assisted optimization}
+
+\titlePage
+
+\begin{abstract}
+The identification of a multi-group energy structure for full-core deterministic
+simulations is a combinatorial problem whose objective can only be evaluated by
+running the reference solver, so that a thorough exploration of the design space
+is prohibitively expensive. We replace that evaluation with a neural metamodel
+and keep the reference code as the final judge. The metamodel is a hierarchical,
+five-network ensemble trained on 89\,723 full-core evaluations of the NEA
+lead-cooled fast reactor benchmark performed with the neutronics module of
+FRENETIC; it predicts fifteen fitness functions at once---five physical
+quantities for each of three control-rod configurations---with a mean
+coefficient of determination of $0.99631$ on an external validation set and a
+median relative error of $0.422\%$, and it evaluates a candidate structure
+several orders of magnitude faster than the solver. One hundred independent
+genetic searches then take $79$~s in total, and the fifteen best distinct
+candidates are verified with FRENETIC. The resulting 18-group structure is
+better than every one of the 122\,693 configurations computed to date, by
+$15.8\%$, and better than a structure with uniformly spaced boundaries and the
+same number of groups by four orders of magnitude. Two findings qualify the
+approach rather than advertise it. First, the residual error of the metamodel is
+concentrated in a specific regime---small values of the reactivity and kinetics
+fitness functions---and we show by exclusion that it is not label noise, not
+data sparsity and not a deficiency of the input
+representation, but a property of the target: displacing a single group boundary
+changes it by half a decade there, against two hundredths of a decade elsewhere.
+Second, the search is systematically drawn towards the regions where the
+metamodel is optimistic, which is precisely why the verification stage cannot be
+dispensed with. The design space is found to contain two genuinely separated
+families of solutions, one of them $16\%$ worse than the other, and roughly half
+of the searches converge to it.
+\end{abstract}
+
+
+\section{Introduction}
+\label{sec:intro}
+
+Full-core deterministic simulations of fast reactors are performed on a
+condensed energy mesh. The number of groups and, more importantly, the placement
+of their boundaries determine how faithfully the condensed calculation
+reproduces a fine-group or Monte Carlo reference, and the dependence is neither
+smooth nor intuitive: two structures with the same number of groups can differ
+by orders of magnitude in accuracy. The impact of energy collapsing on the
+integral parameters of a fast system has been analysed in detail for the neutron
+lifetime~\cite{collapsing}. The problem of choosing the structure itself has
+been attacked repeatedly with metaheuristics---particle swarm optimization for
+thermal lattices~\cite{psoThermal}, genetic algorithms for multigroup searches
+in SIMMER~\cite{massoneGA,simmerGA} and for the ARC fusion
+reactor~\cite{arcGA}, simulated annealing for sodium-cooled fast
+reactors~\cite{sfrSA}, hierarchical division~\cite{hierDiv}, and dedicated
+studies for specific systems~\cite{scwr}.
+
+All of these share one difficulty. The fitness of a candidate structure can only
+be established by running the reference calculation, and every generation of a
+population-based search demands hundreds of such runs. In the present case one
+evaluation of a single structure with the neutronics module of
+FRENETIC~\cite{frenetic,freneticBench}---three control-rod configurations of the
+NEA lead-cooled fast reactor benchmark~\cite{neaBench}---costs $46$~s on three
+cores, so that a
+single genetic search of one hundred individuals over one hundred generations
+costs about $383$ core-hours. That is affordable once. It is not affordable a
+hundred times, which is what a trustworthy exploration of a multimodal design
+space requires.
+
+The natural response is to replace the expensive evaluation with a cheap
+approximation. Purely physical approximations have been proposed, based on
+contributon transport theory rather than on data~\cite{pbfa,contributon}.
+Data-driven surrogates have entered the field more recently: neural and
+random-forest classifiers have been used to decide whether a given twenty-group
+structure is adequate for light-water lattice calculations~\cite{mlClassify},
+and a reinforcement-learning agent guided by a neural surrogate has been applied
+to one-dimensional spherical criticality benchmarks~\cite{rlGrid}. In adjacent
+problems, neural surrogates inside genetic algorithms are by now routine, for
+core loading patterns~\cite{coreLoading} and for experiment
+design~\cite{fnsSurrogate}. In the wider optimization literature the pattern is
+mature and carries a name---surrogate-assisted evolutionary algorithms---with an
+extensive body of work on how best to spend the expensive
+evaluations~\cite{saeaSurvey}.
+
+The contribution of this work is therefore not the pipeline. It is threefold.
+First, we carry surrogate-accelerated group-structure optimization to full-core
+fidelity with a fifteen-dimensional objective spanning reactivity, kinetics
+parameters, flux and power, evaluated simultaneously for three core
+states---an application well beyond the one-dimensional, single-quantity
+benchmarks on which the idea has so far been demonstrated. Second, and more
+importantly, we map where the metamodel can and cannot be trusted, excluding
+three candidate explanations experimentally rather than arguing them away, and we
+show that the residual limitation is a property of the target function rather
+than of the model. Third, we quantify the behaviour that makes the verification
+stage indispensable: a search driven by a surrogate is drawn preferentially
+towards the regions where that surrogate is optimistic, so that increasing the
+number of searches makes verification more necessary, not less.
+
+The work builds directly on the multi-configuration genetic optimization of
+Ref.~\cite{prevMulti}, from which the chromosome representation, the fitness
+functions and the three core configurations are taken unchanged, and which in
+turn concludes a line of work on this system~\cite{lfrGA2022,lfrGA2024,prevGA}
+rooted in the multigroup structure search of Refs.~\cite{massoneGA,simmerGA}. The workflow adopted here and the one it
+replaces are compared in Fig.~\ref{fig:flow}.
+
+\begin{figure}[htbp]
+  \centering
+  \resizebox{140mm}{!}{\input{flowchart.tex}}
+  \caption{The workflow, drawn so that it can be compared directly with the one
+  of Ref.~\cite{prevMulti}. Boxes and arrows outlined in blue are introduced
+  here; those with a thin grey outline are inherited unchanged. The three faded
+  boxes on the right are what the reference workflow performs at that point of
+  the loop: a coupling layer, the generation of an input deck and one full-core
+  evaluation with the solver, repeated for every individual of every generation.
+  All three disappear here. In their place the entire population is evaluated in
+  a single batched call to the neural metamodel, the blue box inside the loop,
+  which is trained beforehand on a set of full-core evaluations produced with
+  the same solver. The solver is therefore never called from within the search:
+  it appears once before it, to build the training set, and once after it, to
+  verify the best distinct candidates gathered from all the independent searches
+  and to fix the final ranking. The scaling of the fitness is also changed, from
+  the running window of Eq.~(\ref{eqn:scaling}) to a fixed one, and the search is
+  repeated from many independent starting populations.}
+  \label{fig:flow}
+\end{figure}
+
+
+\section{Problem Statement}
+\label{sec:problem}
+
+Serpent~2 is used to generate, for each core configuration, both the reference
+values of the integral parameters and the spatially homogenised fine-group
+constants, evaluated at isothermal conditions with fuel and coolant at
+$673$~K. The data are collapsed onto a fine-group structure of 30 groups whose
+boundaries are extracted from the ECCO-33 grid, chosen so that few groups
+describe the thermal and the fast regions where the Monte Carlo statistics are
+poorest. That 30-group structure is the pool of boundaries from which a
+candidate solution is built: a candidate is any subset of the 29 internal
+boundaries, so that the design space contains $2^{29}\approx5.4\times10^{8}$
+structures. A structure with $G$ groups is encoded, for the metamodel, as a
+29-bit vector together with $G$ itself.
+
+Three control-rod configurations are considered simultaneously: fully
+withdrawn, partially inserted---the absorbing region facing the fuel over a
+length of $28$~cm---and fully inserted. Quality is measured, for a candidate
+structure $I$ and against the Monte Carlo reference, by five fitness functions
+per configuration~\cite{prevMulti}:
+%
+\begin{equation}
+  f_k^I = \left|k^I - k^\mathrm{MC}\right|\times10^5, \qquad
+  f_{\beta}^I = \left|\beta_\mathrm{eff}^I - \beta_\mathrm{eff}^\mathrm{MC}\right|
+  \times10^5, \qquad
+  f_{\Lambda}^I = \frac{\Lambda_\mathrm{eff}^I -
+  \Lambda_\mathrm{eff}^\mathrm{MC}}{\Lambda_\mathrm{eff}^\mathrm{MC}}\times10^2,
+  \label{eqn:integral}
+\end{equation}
+%
+for the multiplication factor, the effective delayed neutron fraction and the
+effective neutron generation time, and
+%
+\begin{equation}
+  f_P^I = \sqrt{\sum_{j=1}^{J}\left(\frac{P_j^I-P_j^\mathrm{MC}}
+  {P_j^\mathrm{MC}}\right)^{2}}, \qquad
+  f_{\Phi}^I = \sqrt{\sum_{g=1}^{G}\sum_{j=1}^{J} w_{g,j}
+  \left(\frac{\Phi_{g,j}^I-\Phi_{g,j}^\mathrm{MC}}
+  {\Phi_{g,j}^\mathrm{MC}}\right)^{2}},
+  \label{eqn:distributed}
+\end{equation}
+%
+for the power and the flux distributions over the $J$ core assemblies, the flux
+being weighted by the total importance $\phi\phi^{\ddagger}/v$. All five are
+deviations from the reference, so smaller values are better.
+
+Because the five quantities differ by orders of magnitude and in range of
+variability, each is mapped onto $[1,100]$ by the linear scaling
+%
+\begin{equation}
+  h_L : f \longrightarrow 1 + 99\,
+  \frac{f-\min_{\forall I\in E}\left(f^I\right)}
+       {\max_{\forall I\in E}\left(f^I\right)-\min_{\forall I\in E}\left(f^I\right)},
+  \label{eqn:scaling}
+\end{equation}
+%
+where $E$ is the set of solutions evaluated so far, and the joint fitness is the
+product of the fifteen scaled terms, five for each of the three
+configurations~\cite{prevMulti}. Additional controls are applied to the raw
+values before scaling, clipping the reactivity and kinetics quantities from
+below and taking a base-ten logarithm floored at unity for the flux.
+% TODO: verificare l'esatta formulazione dei controlli rispetto alla tesi
+We retain this formulation so that results remain comparable, with the single
+modification described below.
+
+
+\section{The Metamodel}
+\label{sec:metamodel}
+
+\subsection{Data}
+
+The training set comprises 89\,723 distinct structures for which the neutronics
+module of FRENETIC has been run over the three configurations, accumulated over
+an initial space-filling pool and sixteen rounds of active learning in which the
+configurations to be simulated next were chosen by the disagreement of an
+ensemble of networks. A further 1\,700 structures form an external validation
+set that is never used in training, nor for early stopping, nor for any
+hyperparameter decision; every accuracy figure quoted in this paper refers to
+it.
+
+\subsection{Architecture}
+
+The fifteen outputs are not independent: they group naturally into five physical
+families, each evaluated for the same three core states. The network mirrors
+that structure. A shared trunk of three fully connected layers ($1024$, $512$,
+$256$) receives the 29-bit encoding together with $G$; it feeds five
+family-level necks ($128$, $64$), each of which feeds three configuration-level
+branches ($32$) terminating in the corresponding output. Parameters are thus
+shared to the extent that the physics shares them, and specialised where it does
+not. An ablation over the same data gives a mean coefficient of determination of
+$0.9852$ for a single-headed network, $0.9882$ when only the five families are
+separated, and $0.9894$ for the full hierarchy.
+
+Twelve of the fifteen outputs span several orders of magnitude and are learned
+as $\log_{10}(y+10^{-6})$; the three power fitness functions are learned
+directly. Predictions are averaged over an ensemble of five networks trained
+from different initialisations~\cite{deepEnsembles}; the disagreement within
+the ensemble also supplies the uncertainty used by the active-learning
+acquisition.
+
+\subsection{Training}
+
+Networks are trained in PyTorch~\cite{pytorch} with AdamW~\cite{adamw} and no
+weight decay, in four stages of decreasing learning rate ($3\times10^{-3}$,
+$3\times10^{-4}$, $10^{-4}$ and $3\times10^{-5}$), each stopped on the
+validation loss. The schedule matters considerably more than one might
+expect: the same architecture trained at a constant $3\times10^{-3}$ with early
+stopping reaches a median relative error of $0.715\%$, against $0.422\%$ with
+the staged decay---a reduction of $41\%$, larger than the combined effect of
+every architectural change described above. A control run with the decay but no
+additional data reproduces the improvement exactly, confirming that it comes
+from the schedule and not from the data.
+
+\subsection{Accuracy}
+
+Table~\ref{tab:accuracy} reports the accuracy per output and
+Fig.~\ref{fig:scatter} the corresponding predicted-against-reference scatter.
+The ensemble reaches a mean coefficient of determination of $0.99631$ and a
+median relative error of $0.422\%$. Accuracy is not uniform: the power fitness
+functions are predicted to better than $0.2\%$, whereas the flux ones are the
+least accurate, at about $2.4\%$.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=150mm]{figs/fig_scatter.pdf}
+  \caption{Predicted against reference values for the fifteen fitness functions,
+  on the 1700 configurations of the external validation set. Rows are the five
+  physical families and columns the three control-rod configurations, from fully
+  withdrawn to fully inserted. Colour encodes the number of energy groups of the
+  structure. Axes are in the space in which the network is trained,
+  logarithmic for every quantity except the power. The dashed line is the
+  identity.}
+  \label{fig:scatter}
+\end{figure}
+
+\subsection{How Much Data Is Enough}
+
+Figure~\ref{fig:learning} shows the external error as a function of the training
+set size, reconstructed by retraining on cumulative subsets of the
+active-learning rounds in chronological order. The error falls steeply up to
+about $53\,000$ configurations and then flattens: the last $36\,400$
+configurations, forty per cent of the data set, buy a $7\%$ reduction in median
+error, with fluctuations in both directions consistent with the training noise
+of the reduced protocol used for this curve. Further active-learning rounds were
+therefore not pursued.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=150mm]{figs/fig_learning.pdf}
+  \caption{External validation error against the size of the training set,
+  obtained by retraining on cumulative subsets of the active-learning rounds in
+  chronological order. Left: median relative error. Right: mean coefficient of
+  determination over the fifteen outputs. A reduced training protocol, using a
+  single network and a shortened schedule, was adopted so that the points are
+  comparable with one another; the absolute level is consequently higher than
+  that of the full five-network ensemble. The error falls steeply up to roughly
+  fifty thousand configurations and is flat thereafter.}
+  \label{fig:learning}
+\end{figure}
+
+\subsection{Where the Metamodel Fails, and Why}
+\label{sec:limit}
+
+The residual error is not spread evenly over the design space. It concentrates
+at small values of the reactivity and kinetics fitness functions and, for the
+flux, at large values. Since these are the structures that perform best, and
+therefore exactly the ones an optimizer will visit, the behaviour deserves an
+explanation rather than a caveat.
+
+Three candidate explanations were tested and each was excluded by measurement;
+Table~\ref{tab:hypotheses} summarises them. The labels carry no noise: of the
+configurations present in more than one data file, 21\,440 in total, the spread
+is $0.0000\%$ on every output, and an independent re-run of the solver
+reproduces stored reference values to all digits. The regime is not
+data-starved; on the contrary it contains two and a half times more training
+points than the regime in which the model performs best. Finally, augmenting the 30 inputs with 65 physics-informed
+descriptors---lethargy widths of the condensed groups, the variation of the
+reference flux shape within each of them, and the widths of the groups
+containing the sharpest spectral features---makes the model \emph{worse}
+($0.473\%$ against $0.422\%$), because a network of this capacity can construct
+such features internally where they help.
+
+What remains is a property of the target itself. Searching the data set for
+pairs of structures differing by exactly one boundary yields 54\,575 such pairs.
+The median change in the base-ten logarithm of the fitness function across a
+pair is $0.414$ decades in the lowest band of multiplication-factor deviations,
+against $0.024$ decades in the highest---a factor of seventeen---and $0.395$
+against $0.044$ for the generation time. Figure~\ref{fig:smallvalue} shows that
+the model error follows this steepness across all five families, including the
+flux, which is steepest at large values and is indeed least accurate there.
+
+The physical reading is direct. A small fitness function means that the
+condensed calculation reproduces the reference almost exactly, which it achieves
+through a fine cancellation of errors across groups; cancellations are fragile,
+and displacing one boundary destroys them. A smooth interpolator cannot follow a
+function that jumps by half a decade under a one-bit change of its input. This
+is not a deficiency that more data or a different architecture will remove, and
+it is the reason why the reference solver retains the last word.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=150mm]{figs/fig_steepness.pdf}
+  \caption{Left: steepness of the target, measured on the pairs of structures in
+  the data set that differ by exactly one boundary, as the median change of the
+  base-ten logarithm of the fitness function across a pair. Centre: median
+  relative error of the metamodel over the same bands of the reference value.
+  Right: the two quantities against each other, one point per band and family.
+  The error of the metamodel follows the steepness of the target rather than the
+  magnitude of the quantity, which is why the flux behaves oppositely to the
+  other four families.}
+  \label{fig:smallvalue}
+\end{figure}
+
+
+\section{The Optimization Workflow}
+\label{sec:workflow}
+
+\subsection{A Fitness That Does Not Move}
+\label{sec:canonical}
+
+The scaling of Eq.~(\ref{eqn:scaling}) uses the minimum and the maximum
+encountered so far in the run. That choice keeps comparisons internally
+consistent within a generation, but it has a consequence that matters as soon as
+several independent searches are to be compared: the scale itself depends on how
+much a run has explored. We measured this directly---a search of 500 generations
+reports a worse final fitness than one of 300 on the same problem, purely
+because it widened its own window.
+
+We therefore define a \emph{canonical} fitness, in which the two extremes of
+Eq.~(\ref{eqn:scaling}) are computed once from all 89\,723 configurations
+already available and then held fixed. The canonical fitness is comparable
+across searches, which multi-start requires, and it is also stationary within a
+search. The latter has two further consequences: the genetic algorithm now
+optimizes exactly the quantity by which its solutions are subsequently ranked,
+which was previously not the case; and the re-evaluation of the whole population
+at every generation, needed in the reference workflow to compensate for the
+moving scale, becomes unnecessary.
+
+\subsection{Multi-Start Search}
+
+Because a single search samples a multimodal landscape only once, we run many
+independent searches---``tribes''---differing only in their random seed. Each
+uses a population of 100 over 100 generations, with two-point crossover, integer
+random mutation at $0.05$ per gene, and a repair operator enforcing a number of
+groups between 4 and 20. The search reproduces the scheme of
+Ref.~\cite{prevMulti}---the chromosome representation, the repair operator and
+the fitness functions---but not its implementation: we build it on the pymoo
+library~\cite{pymoo} rather than on the coupled code of
+Refs.~\cite{prevMulti,massoneGA}, and we use the canonical fitness in place of
+the dynamically scaled one. Population and generation counts were fixed by
+measurement: populations of 40 give a final fitness about twice as poor,
+populations of 200 give no improvement, and the median tribe reaches within
+$1\%$ of its own final value by generation 42, with only four tribes in a
+hundred still improving after generation 90.
+
+One implementation detail has consequences for reproducibility. The sampling and
+mutation operators of this problem draw from the global random generator, which
+the optimization library does not seed; the seed passed to the optimizer
+therefore had no effect and successive runs were not reproducible. Seeding the
+global generator explicitly before each tribe restores bit-level
+reproducibility.
+
+Tribes are independent and are executed in parallel. One hundred tribes take
+$79$~s on eight processes---$0.79$~s per tribe, against $9.8$~s for the serial,
+dynamically scaled formulation, a speed-up of a factor of twelve.
+
+\subsection{The Reference Solver as Final Judge}
+
+The best distinct candidates by canonical fitness are then evaluated with
+FRENETIC, and the ranking reported is the one obtained from those true values.
+No result presented in this paper is a metamodel prediction: the metamodel
+decides what deserves a full-core calculation, and the full-core calculation
+decides what is best.
+
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Behaviour of the Search}
+
+One hundred tribes produced 61 distinct structures. Figure~\ref{fig:search}
+shows the convergence of all of them on the common canonical scale, the
+distribution of the generation at which each tribe reaches within $1\%$ of its
+own final value, and where the tribes land in the plane of group count against
+fitness.
+
+Only five tribes in a hundred finish within $5\%$ of the best predicted fitness,
+against a median that is $17\%$ worse. This is the quantitative justification
+for multi-start: the plateau of good solutions is narrow in probability even
+where it is flat in value, and reaching it at any single attempt is unlikely.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=150mm]{figs/fig_search.pdf}
+  \caption{Behaviour of the independent searches. Left: best joint fitness
+  against generation, one thin line per tribe, with the median and the band
+  between the tenth and ninetieth percentiles. Centre: distribution of the
+  generation at which a tribe first comes within one per cent of its own final
+  value. Right: where the tribes land in the plane of group count against joint
+  fitness; the arrows join the value predicted by the metamodel to the one
+  obtained from the reference solver, for the candidates that were verified.}
+  \label{fig:search}
+\end{figure}
+
+The dynamics inside a single tribe are shown in Fig.~\ref{fig:tribe}. The initial
+population is heterogeneous, with most boundaries present in roughly half of the
+individuals; within about a dozen generations the population crystallises, each
+boundary being either adopted by nearly every individual or abandoned by nearly
+all of them. The two events visible around generations 22 and 76, where a
+boundary that had been fixed is re-opened and replaced, illustrate that crossover
+and mutation continue to restructure the solution long after the joint fitness
+has apparently settled: the median of the population reaches its final level by
+generation 15, while the best individual still improves afterwards.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=150mm]{figs/fig_tribe.pdf}
+  \caption{Evolution of one tribe. Above: fraction of the population containing
+  each internal boundary, generation by generation, from green when the boundary
+  is absent from the whole population to red when every individual carries it;
+  the white dotted lines mark the boundaries of the final solution of this tribe.
+  Below, on the same generation axis: joint fitness of the population, as the
+  band between the tenth and ninetieth percentiles, its median, and the best
+  individual.}
+  \label{fig:tribe}
+\end{figure}
+
+\subsection{Two Families of Solutions}
+
+The 61 distinct structures do not form a single cloud. Clustering them by
+Hamming distance separates two groups whose mean internal distance is $4.4$
+boundaries against $11.1$ between them, and the separation is almost binary in
+terms of specific boundaries: one family places fast-region cuts at $3.679$ and
+$0.302$~MeV and includes a thermal cut at $5.4\times10^{-7}$~MeV, while the
+other places them at $2.231$ and $0.111$~MeV instead
+(Fig.~\ref{fig:structure}). Roughly half of the tribes converge to each: 52
+against 48 in the run reported here.
+
+The distinction is not one of group count---the two families span overlapping
+ranges of $G$---and it is not an artefact of the metamodel. Verifying the six
+best members of the poorer family with FRENETIC gives a median true fitness of
+$1.055\times10^{7}$ against $9.105\times10^{6}$ for the better one, a genuine
+gap of $16\%$; the metamodel predicts those six structures with a disagreement
+of between $0.5\%$ and $2.4\%$, better than its agreement on the family it
+prefers. The design space genuinely contains two competing basins, one of them
+systematically inferior, and a single search has an even chance of ending in it
+without any indication that it has done so.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=150mm]{figs/fig_structure.pdf}
+  \caption{Left: how often each internal boundary of the master mesh appears
+  among the better tribes, taken as the best forty per cent and plotted upward,
+  and among the remaining ones, plotted downward; the dotted vertical lines mark
+  the boundaries of the best structure found. Right: two-dimensional
+  multidimensional scaling of the Hamming distance between the distinct
+  structures, coloured by joint fitness, the circled point being the best
+  structure. The two separated clouds are the two families of solutions
+  discussed in the text.}
+  \label{fig:structure}
+\end{figure}
+
+\subsection{Verification and the Optimism of a Surrogate-Driven Search}
+
+Table~\ref{tab:ranking} reports the fifteen verified candidates. The median
+disagreement between predicted and true joint fitness is $5.8\%$. The
+metamodel's own first choice is ranked third by FRENETIC, but the two differ by
+$0.72\%$ in true fitness---well below the metamodel's resolution, and a
+distinction it neither can nor needs to make.
+
+More instructive is the direction of the error: thirteen of the fifteen
+predictions are \emph{under}-estimates (Fig.~\ref{fig:bias}). This is not
+random. A search minimising a predicted quantity is attracted both to genuinely
+good structures and to structures the metamodel underrates, and cannot
+distinguish between them. Increasing the number of tribes therefore increases
+the number of opportunities to exploit the metamodel's optimism, which makes the
+verification stage more necessary rather than less. The same figure shows that
+the error is not diffuse: on the proposed structures the metamodel is accurate
+to better than $5\%$ on fourteen of the fifteen quantities, and errs
+substantially on one---the multiplication factor in the partially inserted
+configuration---which is the small-value regime characterised above, appearing
+here in operation rather than in diagnosis.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=150mm]{figs/fig_bias.pdf}
+  \caption{Left: joint fitness predicted by the metamodel against the value
+  obtained from the reference solver, for the verified candidates; the shaded
+  region is where the metamodel under-estimates, and colour encodes the number
+  of energy groups. Right: distribution of the relative error of the metamodel
+  on those same candidates, quantity by quantity, with boxes spanning the
+  interquartile range and whiskers the extremes. The error is concentrated on a
+  single quantity rather than spread over all of them.}
+  \label{fig:bias}
+\end{figure}
+
+\subsection{The Optimized Structure}
+
+The best verified structure has $G=18$ and a canonical fitness of
+$8.5582\times10^{6}$, with internal boundaries at $3.679$, $0.302$, $0.1832$,
+$0.1111$, $6.738\times10^{-2}$, $2.479\times10^{-2}$, $1.503\times10^{-2}$,
+$9.119\times10^{-3}$, $5.531\times10^{-3}$, $3.355\times10^{-3}$,
+$2.035\times10^{-3}$, $1.234\times10^{-3}$, $7.485\times10^{-4}$,
+$4.540\times10^{-4}$, $3.043\times10^{-4}$, $9.166\times10^{-5}$ and
+$5.4\times10^{-7}$~MeV. Like the solutions reported in
+Ref.~\cite{prevMulti}, it uses more than fifteen groups, confirming that the
+optimization is driven towards the upper end of the admissible range.
+
+It is better than every one of the 122\,693 configurations computed to date, by
+$15.8\%$ with respect to the best among them. Against structures built by the
+obvious rules it is better by orders of magnitude: a structure with uniformly
+spaced boundary indices and the same 19 boundaries is worse by a factor of
+$1.2\times10^{4}$, and one with uniform lethargy spacing by a factor of
+$5.1\times10^{2}$. Table~\ref{tab:standard} resolves those figures quantity by
+quantity, which is necessary because a product of fifteen terms amplifies
+moderate individual differences: the optimized structure wins decisively on the
+delayed neutron fraction and on the multiplication factor in the partially
+inserted configuration, loses on the delayed neutron fraction with the rods
+fully inserted, and six of the fifteen terms saturate at their floor for all
+three structures and thus carry no information in this regime.
+
+We note in passing that a uniform-lethargy structure cannot be built with 19
+groups on this master mesh: the 30 fine-group boundaries are not themselves
+equally spaced in lethargy, so that equally spaced targets collapse onto
+repeated boundaries and only 13 survive. The fine-group structure constrains
+which ``natural'' coarse structures are constructible at all.
+
+\subsection{How Many Groups Are Needed}
+
+Repeating the search with the group count constrained gives the attainable
+fitness as a function of $G$ (Fig.~\ref{fig:tradeoff}), each point verified with
+FRENETIC. The curve falls by a factor of $4.3$ between $G=8$ and $G=14$ and is
+flat thereafter, the whole range from $G=14$ to $G=20$ lying within $7\%$.
+Fourteen groups are therefore sufficient for this core and this set of fitness
+functions, and the additional groups used by the best structure buy little. This
+is the kind of question a metamodel answers and a direct search does not:
+thirteen constrained optimizations cost four minutes on the surrogate and would
+have cost some five thousand core-hours on the solver.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=110mm]{figs/fig_tradeoff.pdf}
+  \caption{Best attainable joint fitness as a function of the number of energy
+  groups, obtained by repeating the search with the group count constrained.
+  Each point of the solid curve was verified with the reference solver; the
+  dashed curve is the corresponding metamodel prediction. The stars mark the two
+  standard structures, which lie orders of magnitude above the attainable
+  curve.}
+  \label{fig:tradeoff}
+\end{figure}
+
+\subsection{Cost}
+
+Table~\ref{tab:cost} gives the budget. Building the metamodel cost about
+$3\,439$ core-hours of FRENETIC, whereas one tribe evaluated directly on the
+solver would cost $383$. The metamodel therefore does not pay for itself below
+about nine tribes---a point worth stating plainly, since for a single
+optimization a direct search is cheaper. Above that threshold the advantage
+compounds: the search reported here would have cost some $38\,000$ core-hours
+and cost $0.6$, and the data set, once built, also supplied the constrained
+searches described above at no additional cost.
+
+
+\section{Discussion}
+\label{sec:discussion}
+
+Three limitations should be stated.
+
+The verification stage is greedy. Candidates are sent to the solver in order of
+predicted fitness, so the procedure only ever examines structures of which the
+metamodel approves and cannot, by construction, detect a systematic bias in the
+metamodel's landscape. We tested for such a bias in the one case where it was
+plausible---the poorer of the two solution families---and found none, but that
+test was deliberate and is not a property of the workflow. A diversity-aware
+allocation of the verification budget, as is standard practice in the
+surrogate-assisted optimization literature~\cite{saeaSurvey}, would remove the
+blind spot.
+
+The objective is less informative than it appears. Of the fifteen fitness
+functions, those of the generation time sit at their floor for $90\%$ of the
+configurations in the data set and the flux ones saturate among the good
+structures, so that discrimination in the region where the optimization operates
+comes from the multiplication factor, the power and two of the three delayed
+neutron fraction terms. An immediate practical consequence is that the flux,
+which is the quantity the metamodel predicts least accurately, has almost no
+influence on the outcome, whereas the multiplication factor with the rods fully
+inserted, which has the lowest coefficient of determination of all fifteen,
+dominates the product. Effort spent on metamodel accuracy is best directed
+there.
+
+Finally, the metamodel is specific to this core, this fine-group structure and
+these three control-rod configurations. The data set that supports it is its
+principal cost, and transferring the approach to another system means paying
+that cost again.
+
+
+\section{Conclusions}
+\label{sec:conclusion}
+
+A neural metamodel trained on 89\,723 full-core evaluations predicts fifteen
+fitness functions for a candidate energy structure with a median relative error
+of $0.422\%$, fast enough that one hundred independent genetic searches complete
+in $79$~s. Verified by the reference solver, the resulting 18-group structure
+improves on the best of 122\,693 previously computed configurations by $15.8\%$
+and on standard constructions by orders of magnitude, and the attainable
+accuracy is shown to saturate at about fourteen groups.
+
+The more transferable results are the negative and the structural ones. The
+metamodel's residual error is confined to a regime in which the target itself
+changes by half a decade under a one-bit change of its input, and three
+alternative explanations for it were excluded by measurement, including the
+addition of physics-informed input features, which made the model worse. A
+surrogate-driven search is systematically attracted to the surrogate's own
+optimism, so that more searching strengthens rather than weakens the case for
+verification. And the design space contains two genuinely separated families of
+structures, one $16\%$ worse than the other, with an even chance of converging
+to the wrong one---which is what multi-start buys, and what a single search,
+however well converged, cannot reveal.
+
+
+\section*{Acknowledgements}
+% TODO: ringraziamenti e finanziamenti
+
+
+\input{tables.tex}
+
+\pagebreak
+\bibliographystyle{style/ans_js}
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,10 @@
+# prodotti della compilazione
+*.aux
+*.log
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+paper.pdf
+# template originale, non è nostro
+ans_template/
