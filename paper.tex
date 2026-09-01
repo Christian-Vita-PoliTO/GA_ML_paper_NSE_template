@@ -268,7 +268,7 @@ $3\times10^{-4}$, $10^{-4}$ and $3\times10^{-5}$), each stopped on the
 validation loss. The schedule matters considerably more than one might
 expect: the same architecture trained at a constant $3\times10^{-3}$ with early
 stopping reaches a median relative error of $0.715\%$, against $0.422\%$ with
-the staged decay---a reduction of $41\%$, larger than the combined effect of
+the staged decay, both measured on the same data---a reduction of $41\%$, larger than the combined effect of
 every architectural change described above. A control run with the decay but no
 additional data reproduces the improvement exactly, confirming that it comes
 from the schedule and not from the data.
@@ -339,7 +339,8 @@ points than the regime in which the model performs best. Finally, augmenting the
 descriptors---lethargy widths of the condensed groups, the variation of the
 reference flux shape within each of them, and the widths of the groups
 containing the sharpest spectral features---makes the model \emph{worse}
-($0.473\%$ against $0.422\%$), because a network of this capacity can construct
+($0.473\%$ against $0.422\%$ on the same data), because a network of this
+capacity can construct
 such features internally where they help.
 
 What remains is a property of the target itself. Searching the data set for
@@ -490,7 +491,7 @@ generation 15, while the best individual still improves afterwards.
 
 \subsection{Two Families of Solutions}
 
-The 61 distinct structures do not form a single cloud. Clustering them by
+The 67 distinct structures do not form a single cloud. Clustering them by
 Hamming distance separates two groups whose mean internal distance is $5.0$
 boundaries against $10.4$ between them, and the separation is almost binary in
 terms of specific boundaries: one family places fast-region cuts at $3.679$ and
