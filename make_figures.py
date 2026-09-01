@@ -155,7 +155,7 @@ save('fig_steepness.pdf')
 
 # ══ Fig. — behaviour of the searches ═════════════════════════════════════
 sols = json.load(open(RES / 'tribes_100_full.json'))
-rank = json.load(open(RES / 'final_scheme_100.json'))['ranking']
+rank = json.load(open(RES / 'verify_all_distinct.json'))['ranking']
 ffn = np.array([s['canon_ff_nn'] for s in sols])
 Gs = np.array([s['G'] for s in sols])
 Bt = np.zeros((len(sols), 29), bool)
@@ -241,6 +241,11 @@ ax[0].set_xscale('log'); ax[0].set_yscale('log')
 ax[0].set_xlim(lim); ax[0].set_ylim(lim)
 ax[0].set_xlabel('fitness from the reference solver')
 ax[0].set_ylabel('fitness from the metamodel')
+from matplotlib.ticker import LogLocator, NullFormatter
+for a in (ax[0].xaxis, ax[0].yaxis):
+    a.set_major_locator(LogLocator(base=10, numticks=4))
+    a.set_minor_locator(LogLocator(base=10, subs=(2., 5.), numticks=12))
+    a.set_minor_formatter(NullFormatter())
 cb = plt.colorbar(sc, ax=ax[0]); cb.set_label('energy groups')
 pos = np.arange(15)
 bp = ax[1].boxplot([[r['rels'][c] for r in rank] for c in OUTS], positions=pos,

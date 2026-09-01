@@ -15,6 +15,8 @@ RES  = pathlib.Path('../results')
 best = json.load(open(RES / 'best_grid.json'))
 meta = json.load(open('../final_model_hier_v2/metadata.json'))
 fin  = json.load(open(RES / 'final_scheme_100.json'))
+ver  = json.load(open(RES / 'verify_all_distinct.json'))
+abl  = json.load(open(RES / 'arch_ablation.json'))
 std  = json.load(open(RES / 'baseline_standard.json'))
 stdv = json.load(open(RES / 'baseline_standard_valori.json'))
 dat  = json.load(open(RES / 'refined_plot_data.json'))
@@ -65,6 +67,30 @@ out.append(f'    {esc(N[14])} & {r2[N[14]]:.5f} & {np.median(rel[:,14]):.3f} & &
 out.append(r'    \textbf{Ensemble} & \textbf{%.5f} & \textbf{%.3f} & & & \\ \hline'
            % (meta['r2_ext_mean'], meta['median_rel_err_pct_ext']))
 out.append(r'\end{tabular}' + '\n' + r'\end{table}')
+
+# ══ Tabella Ib — ablazione dell'architettura ═════════════════════════════
+ORD = ['flat', 'families', 'hierarchical']
+LBL = {'flat': 'Shared trunk, fifteen linear heads',
+       'families': 'Shared trunk, one neck per family',
+       'hierarchical': 'Shared trunk, family neck, configuration branch'}
+ab = {r['arch']: r for r in abl['results']}
+out.append(r"""
+\begin{table}[htbp]
+\centering
+\caption{Contribution of each level of the hierarchy, measured on the same
+%s configurations and with the same reduced protocol: one network per
+architecture, constant learning rate and early stopping. The absolute values are
+therefore higher than those of the final ensemble, and only their differences
+are meaningful.}
+\label{tab:ablation}
+\begin{tabular}{|l|c|c|c|}
+\hline
+Architecture & Parameters & $R^2$ & Rel.\ err.\ [\%%] \\ \hline""" %
+           f"{abl['protocol']['n_train']:,}".replace(',', r'\,'))
+for k in ORD:
+    out.append(f"    {LBL[k]} & {ab[k]['n_params']/1e6:.2f}M & "
+               f"{ab[k]['r2_ext_mean']:.4f} & {ab[k]['median_rel_err_pct']:.3f} \\\\")
+out.append(r'\hline' + '\n' + r'\end{tabular}' + '\n' + r'\end{table}')
 
 # ══ Tabella II — le tre ipotesi escluse ══════════════════════════════════
 dsm  = json.load(open(RES / 'diagnose_small.json'))['keff_CRin0']
@@ -154,8 +180,9 @@ out.append(r'\hline')
 out.append(r'    Property & Family A & Family B \\ \hline')
 out.append(f"    Distinct structures & {fam['n_A']} & {fam['n_B']} \\\\")
 out.append('    Median joint fitness & '
-           f"{sci(float(np.median(famv['famA_true'])))} & "
-           f"{sci(float(np.median([r['canon_ff_true'] for r in famv['famB_verificate']])))} \\\\")
+           f"{sci(fam['ff_A'])} & {sci(fam['ff_B'])} \\\\")
+out.append('    Mean internal Hamming distance & '
+           f"{fam['hamming_within_A']:.1f} & {fam['hamming_within_B']:.1f} \\\\")
 out.append('    Weighted shape variation & '
            f"{fam['distorsione']['importanza_migliore']:.3f} & "
            f"{fam['distorsione']['importanza_peggiore']:.3f} \\\\ \\hline")
@@ -179,28 +206,31 @@ Item & Core-hours \\ \hline
 Building the metamodel (%s configurations, once) & %.0f \\
 One tribe evaluated directly with FRENETIC & %.0f \\
 Break-even & %.0f tribes \\ \hline
-This work: %d tribes on the metamodel & %.1f \\
+This work: %d tribes on the metamodel, all outcomes verified & %.1f \\
 Equivalent cost avoided & %.0f \\ \hline
 \end{tabular}
 \end{table}''' % (SEC, NCPU, fin['pop'], fin['gen'], f'${NCFG//1000}\\,{NCFG%1000:03d}$',
                   c_meta, c_tribe, c_meta / c_tribe,
-                  fin['tribes'], fin['n_new_frenetic'] * SEC * NCPU / 3600,
+                  fin['tribes'], ver['n_verified'] * SEC * NCPU / 3600,
                   fin['tribes'] * c_tribe))
 
-# ══ Tabella VI — classifica verificata ════════════════════════════════════
-out.append(r'''
+# ══ Tabella VI — classifica verificata ═══════════════════════════════════
+rk = ver['ranking']
+out.append(r"""
 \begin{table}[htbp]
 \centering
-\caption{The %d distinct candidates verified with FRENETIC, ranked by their
-true canonical fitness. The disagreement is the relative difference between
-predicted and true joint fitness; the worst output is the quantity on which the
-metamodel errs most for that structure.}
+\caption{The fifteen best of the %d distinct structures, all of which were
+recomputed with FRENETIC, ranked by their true canonical fitness. The
+disagreement is the relative difference between predicted and true joint
+fitness; the worst output is the quantity on which the metamodel errs most for
+that structure. Over the whole set the rank correlation between predicted and
+true fitness is %.3f and the median disagreement is %.2f\%%.}
 \label{tab:ranking}
 \begin{tabular}{|r|r|c|c|r|l|}
 \hline
-Rank & $G$ & True fitness & Predicted & Disagr.\ [\%%] & Worst output \\ \hline''' %
-           len(fin['ranking']))
-for i, r in enumerate(fin['ranking'], 1):
+Rank & $G$ & True fitness & Predicted & Disagr.\ [\%%] & Worst output \\ \hline"""
+           % (ver['n_verified'], ver['spearman_pred_true'], ver['accordo_mediano_pct']))
+for i, r in enumerate(rk[:15], 1):
     out.append(f"    {i} & {r['G']} & {sci(float(r['canon_ff_true']))} & "
                f"{sci(float(r['canon_ff_nn']))} & {float(r['joint_rel']):.1f} & "
                f"{esc(r['max_col'])} ({float(r['max_rel']):.0f}\\%) \\\\")
@@ -209,6 +239,6 @@ out.append(r'\hline' + '\n' + r'\end{tabular}' + '\n' + r'\end{table}')
 txt = '\n'.join(out)
 assert 'e+0' not in txt and 'e+1' not in txt, 'notazione scientifica non convertita'
 pathlib.Path('tables.tex').write_text(txt)
-print(f'tables.tex: {len(txt.splitlines())} righe, 6 tabelle')
+print(f'tables.tex: {len(txt.splitlines())} righe, 7 tabelle')
 print(f"ottimo G={best['G']}  FF={best['canon_ff_true']:.4e}  "
       f"pareggio {c_meta/c_tribe:.0f} tribù")

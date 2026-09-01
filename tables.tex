@@ -96,7 +96,8 @@ Boundary [MeV] & Family A [\%] & Family B [\%] \\ \hline
 \hline
     Property & Family A & Family B \\ \hline
     Distinct structures & 32 & 35 \\
-    Median joint fitness & $9.105\times10^{6}$ & $1.055\times10^{7}$ \\
+    Median joint fitness & $9.270\times10^{6}$ & $1.133\times10^{7}$ \\
+    Mean internal Hamming distance & 4.6 & 5.5 \\
     Weighted shape variation & 0.138 & 0.377 \\ \hline
 \end{tabular}
 \end{table}
@@ -113,17 +114,19 @@ Item & Core-hours \\ \hline
 Building the metamodel ($91\,723$ configurations, once) & 3516 \\
 One tribe evaluated directly with FRENETIC & 383 \\
 Break-even & 9 tribes \\ \hline
-This work: 100 tribes on the metamodel & 0.6 \\
+This work: 100 tribes on the metamodel, all outcomes verified & 2.6 \\
 Equivalent cost avoided & 38333 \\ \hline
 \end{tabular}
 \end{table}
 
 \begin{table}[htbp]
 \centering
-\caption{The 15 distinct candidates verified with FRENETIC, ranked by their
-true canonical fitness. The disagreement is the relative difference between
-predicted and true joint fitness; the worst output is the quantity on which the
-metamodel errs most for that structure.}
+\caption{The fifteen best of the 67 distinct structures, all of which were
+recomputed with FRENETIC, ranked by their true canonical fitness. The
+disagreement is the relative difference between predicted and true joint
+fitness; the worst output is the quantity on which the metamodel errs most for
+that structure. Over the whole set the rank correlation between predicted and
+true fitness is 0.963 and the median disagreement is 1.43\%.}
 \label{tab:ranking}
 \begin{tabular}{|r|r|c|c|r|l|}
 \hline
@@ -139,10 +142,10 @@ Rank & $G$ & True fitness & Predicted & Disagr.\ [\%] & Worst output \\ \hline
     9 & 20 & $9.031\times10^{6}$ & $8.914\times10^{6}$ & 1.3 & keff\_CRin0 (27\%) \\
     10 & 17 & $9.049\times10^{6}$ & $8.564\times10^{6}$ & 5.4 & keff\_CRin0 (7\%) \\
     11 & 18 & $9.056\times10^{6}$ & $8.488\times10^{6}$ & 6.3 & keff\_CRin0 (13\%) \\
-    12 & 16 & $9.130\times10^{6}$ & $8.852\times10^{6}$ & 3.0 & beta\_CRin0 (64\%) \\
-    13 & 16 & $9.303\times10^{6}$ & $8.841\times10^{6}$ & 5.0 & flux\_CRin55 (8\%) \\
-    14 & 17 & $9.366\times10^{6}$ & $8.895\times10^{6}$ & 5.0 & keff\_CRin0 (10\%) \\
-    15 & 18 & $9.789\times10^{6}$ & $8.813\times10^{6}$ & 10.0 & keff\_CRin0 (10\%) \\
+    12 & 17 & $9.070\times10^{6}$ & $9.252\times10^{6}$ & 2.0 & flux\_CRin55 (9\%) \\
+    13 & 15 & $9.084\times10^{6}$ & $9.022\times10^{6}$ & 0.7 & flux\_CRin55 (5\%) \\
+    14 & 20 & $9.098\times10^{6}$ & $8.949\times10^{6}$ & 1.6 & keff\_CRin0 (28\%) \\
+    15 & 16 & $9.130\times10^{6}$ & $8.852\times10^{6}$ & 3.0 & beta\_CRin0 (64\%) \\
 \hline
 \end{tabular}
 \end{table}

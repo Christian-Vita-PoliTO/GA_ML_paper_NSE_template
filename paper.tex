@@ -291,15 +291,18 @@ crossover and mutation.
 
 The metamodel is trained on 91\,723 distinct structures for which the
 neutronics module of FRENETIC has been run over the three configurations. The
-set was assembled starting from a space-filling pool and enlarged in successive
-batches, the configurations to be simulated next being chosen by the
-disagreement among the members of an ensemble of five networks, averaged over
-the nine quantities that the model predicts least accurately, namely the
-multiplication factor, the flux and the generation time for the three
-configurations. A further 1\,700 structures form an external validation set
-which is never used in training, nor for early stopping, nor for any
-hyperparameter decision. Every accuracy figure quoted in this work refers to
-that set.
+set was assembled incrementally, over seventeen batches. The first was drawn at
+random from the design space; each of the following ones was selected, among the
+structures not yet simulated, by the disagreement among the members of an
+ensemble of networks, averaged over the nine quantities that the model predicts
+least accurately, namely the multiplication factor, the flux and the generation
+time for the three configurations. The criterion was applied with the ensemble
+available at the time of each batch, so the acquisition history is not
+homogeneous, and the retrospective experiment described below replays it under a
+single protocol in order to measure what the accumulated data are worth. A
+further 1\,700 structures form an external validation set which is never used in
+training, nor for early stopping, nor for any hyperparameter decision. Every
+accuracy figure quoted in this work refers to that set.
 
 \subsection{Architecture}
 
@@ -311,9 +314,9 @@ together with the number of groups. The trunk feeds five family-level branches
 of $128$ and $64$ neurons, each of which feeds three configuration-level
 branches of $32$ neurons terminating in the corresponding output. Parameters are
 thus shared to the extent that the physics shares them and specialised where it
-does not. An ablation performed on the same data gives a mean coefficient of
-determination of $0.9852$ for a single-headed network, $0.9882$ when only the
-five families are separated, and $0.9894$ for the full hierarchy.
+does not. An ablation on the same data and with the same reduced training
+protocol, reported in Table~\ref{tab:ablation}, measures what each level of the
+hierarchy contributes.
 
 Twelve of the fifteen outputs span several orders of magnitude and are learned
 as $\log_{10}(y+10^{-6})$, while the three power fitness functions are learned
@@ -496,10 +499,10 @@ the reference solver.
 
 \subsection{Verification with the Reference Solver}
 
-The distinct structures produced by the searches are ranked by canonical fitness
-and submitted to FRENETIC, and the ranking reported in the following is the one
-obtained from the recomputed values. No quantity discussed in
-Sec.~\ref{sec:results} is a prediction of the metamodel. This arrangement is
+Every distinct structure produced by the searches is submitted to FRENETIC, and
+the ranking reported in the following is the one obtained from the recomputed
+values. No quantity discussed in Sec.~\ref{sec:results} is a prediction of the
+metamodel. This arrangement is
 deliberate and follows from Sec.~\ref{sec:limit}: the metamodel is accurate
 enough to order the candidates and thus to identify a short list worth a
 full-core calculation, which is a considerably weaker requirement than
@@ -531,7 +534,7 @@ structure it returns is not determined by the problem alone.
   generation at which a search first comes within one per cent of its own final
   value. Right, position of the outcomes in the plane of group count against
   joint fitness, the arrows joining the value predicted by the metamodel to the
-  one obtained from the reference solver for the verified candidates.}
+  one obtained from the reference solver, for every distinct structure.}
   \label{fig:search}
 \end{figure}
 
@@ -560,9 +563,9 @@ the solution after the joint fitness has apparently settled.
 \subsection{Two Families of Solutions}
 
 The 67 distinct structures do not form a single group. Clustering them by
-Hamming distance separates two families whose mean internal distance is $5.0$
-boundaries against $10.4$ between them, and the searches divide almost equally
-between the two, 53 against 47. The separation is not a matter of group count,
+Hamming distance separates two families of 32 and 35 structures whose mean
+internal distances are $4.6$ and $5.5$ boundaries against $10.4$ between them,
+and the searches divide almost equally between the two, 53 against 47. The separation is not a matter of group count,
 since the two families span overlapping ranges of $G$, but of a coherent block
 of mutually exclusive choices in the fast region of the spectrum, as reported in
 Table~\ref{tab:families} and visible in the right panel of
@@ -576,16 +579,17 @@ with a boundary at $1.371\times10^{-5}$~MeV.
 
 The two blocks are alternative and self-consistent. The boundaries at $3.679$
 and $2.231$~MeV are adjacent in the fine mesh, so that retaining both would
-subdivide a region which carries little flux, and once one of the two is adopted
-the placement of the remaining boundaries adapts to it. No single mutation
+subdivide a region which carries $2.2\%$ of the flux and less than $0.5\%$ of the
+importance, and once one of the two is adopted the placement of the remaining
+boundaries adapts to it. No single mutation
 converts a structure of one family into a structure of the other, which explains
 why a search remains within the family in which its initial population happens
 to fall.
 
-The two families are not equivalent. Verifying with FRENETIC the six best
-members of the less favourable one gives a median true fitness of
-$1.055\times10^{7}$ against $9.105\times10^{6}$ for the other, a difference of
-$16\%$. The origin of the difference can be traced to the way the two families
+The two families are not equivalent. All 67 structures were recomputed with
+FRENETIC, and the median true fitness of the less favourable family is
+$1.133\times10^{7}$ against $9.270\times10^{6}$ for the other, a difference of
+$22\%$. The origin of the difference can be traced to the way the two families
 condense the spectrum. For each structure the variation of the reference flux
 shape within its groups was computed and weighted by the total importance
 $\phi\phi^{\ddagger}/v$ of the group, which is the weight with which the flux
@@ -739,56 +743,86 @@ $6.56\times10^{11}$ and the worst, obtained by suppressing the thermal boundary
 at $5.4\times10^{-7}$~MeV, is $2.61\times10^{14}$.
 
 The optimized 18-group structure is therefore better than the best 29-group
-structure by more than four orders of magnitude. The result is not paradoxical.
-The neutronics module of FRENETIC solves the multi-group diffusion equation, and
-a structure that retains almost all the fine boundaries produces groups that are
-optically thin, a regime in which diffusion theory is known to perform poorly.
-The observation confirms and quantifies the remark of Ref.~\cite{prevMulti} that
-the algorithm drives the solutions towards a relatively high number of groups
-with a counter-intuitive outcome. It also provides the strongest justification
-for the optimization itself, since the finest available structure is not merely
-suboptimal but substantially worse than a carefully chosen coarse one.
+structure by more than four orders of magnitude on the joint fitness. Since that
+fitness is a product of fifteen scaled terms, the factor compounds differences
+which are individually moderate, and it is instructive to look at the terms one
+by one in Table~\ref{tab:standard}.
+
+The finest structure behaves exactly as the physics of condensation would
+suggest on the distributed quantities. It reproduces the flux distribution $2.4$
+times better than the optimized structure and the neutron generation time six
+times better, which is the expected reward for a mesh that barely condenses
+anything. Where it loses is on the integral parameters: the deviation on the
+multiplication factor with the rods partially inserted is $189$~pcm against
+$10$~pcm, and the deviation on the delayed neutron fraction in the same
+configuration is $19.7$ against $1.1$~pcm.
+
+The interpretation is that these residual deviations are not caused by the
+energy mesh. A 29-group structure condenses almost nothing, so what remains is
+the error of the deterministic model itself, namely the diffusion approximation
+and the spatial homogenization, measured against a Monte Carlo reference that
+contains neither. The optimization cannot remove that error, but it can offset
+it: a coarser structure introduces a condensation error of its own, and the
+search selects the structure whose condensation error cancels the model error
+most closely. The eighteen-group structure reproduces the multiplication factor
+almost exactly not because it condenses better, but because its condensation
+error and the model error very nearly cancel.
+
+Two consequences follow. The first is practical: refining the energy mesh is not
+a way of approaching the Monte Carlo reference in this framework, and a
+carefully chosen coarse structure is worth more than the finest admissible one,
+which is the strongest justification for optimizing the structure at all. The
+second concerns the metamodel, and explains the behaviour characterised in
+Sec.~\ref{sec:limit}: since the best structures owe their quality to a
+cancellation between two errors of different origin, their fitness is bound to
+be a fragile function of the mesh, and therefore a hard one to interpolate.
 
 \subsection{Accuracy of the Metamodel on the Proposed Structures}
 
-Table~\ref{tab:ranking} reports the fifteen distinct candidates that were
-recomputed with FRENETIC. The median difference between the predicted and the
-true joint fitness is $3.0\%$, and the structure that the metamodel ranks first
-is also the best according to the solver. The agreement should not be
+All 67 distinct structures were recomputed with FRENETIC, which allows the
+metamodel to be judged on exactly the population it proposed rather than on a
+short list of its own favourites. The median difference between the predicted
+and the true joint fitness over the 67 structures is $1.4\%$, the rank
+correlation between the two is $0.963$ and the correlation of their logarithms
+is $0.983$. The structure that the metamodel ranks first is also the best
+according to the solver, although that particular agreement should not be
 over-interpreted, since the second-ranked structure lies only $0.55\%$ behind
 the first in true fitness, a margin well below the resolution of the metamodel.
-What the comparison establishes is that the ordering produced by the metamodel
-is reliable enough to identify a short list containing the best structures,
-which is what the workflow requires of it.
+What the comparison establishes is the property the workflow actually needs: the
+ordering produced by the metamodel reproduces the ordering of the solver closely
+enough that a search driven by predictions arrives in the same region of the
+design space as a search driven by the solver would. The fifteen best structures
+are listed in Table~\ref{tab:ranking}.
 
 The distribution of the error over the fifteen quantities, in the right panel of
-Fig.~\ref{fig:bias}, shows that ten of them are predicted to better than
-$1.3\%$ on the proposed structures, while the multiplication factor with the
-rods partially inserted and the flux with the rods fully inserted reach median
-errors of $8.0\%$ and $6.9\%$. The first of these is the regime of
-reduced accuracy characterised in Sec.~\ref{sec:limit}, appearing here in
-operation rather than in diagnosis, and its magnitude on the proposed structures
-is consistent with what the analysis of the target steepness predicts.
+Fig.~\ref{fig:bias}, shows that eleven of them are predicted to better than
+$1.3\%$ on these structures, while the flux with the rods fully inserted and the
+multiplication factor with the rods partially inserted reach median errors of
+$3.8\%$ and $3.6\%$. The second of these is the regime of reduced accuracy
+characterised in Sec.~\ref{sec:limit}, appearing here in operation rather than
+in diagnosis: the structures proposed by the searches are precisely those whose
+multiplication factor lies closest to the reference, which is where the target
+is steepest.
 
 The left panel shows a systematic feature of surrogate-driven optimization which
-is worth recording. Thirteen of the fifteen predictions underestimate the true
-fitness. A search that minimises a predicted quantity is attracted both to
-genuinely good structures and to structures whose quality the metamodel
-overestimates, and cannot distinguish between the two. The bias is modest in
-magnitude, the median difference being $3.0\%$, and it does not affect the
-conclusions because every reported quantity comes from the solver, but it
-explains why the verification stage becomes more rather than less necessary as
-the number of searches grows.
+is worth recording. Forty-seven of the 67 predictions, that is seven out of ten,
+underestimate the true fitness. A search that minimises a predicted quantity is
+attracted both to genuinely good structures and to structures whose quality the
+metamodel overestimates, and cannot distinguish between the two. The bias is
+modest in magnitude and it does not affect the conclusions, because every
+reported quantity comes from the solver, but it is the reason why the
+verification stage becomes more rather than less necessary as the number of
+searches grows.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=150mm]{figs/fig_bias.pdf}
   \caption{Left, joint fitness predicted by the metamodel against the value
-  obtained from the reference solver for the verified candidates, the shaded
-  region indicating underestimation and the colour the number of energy groups.
-  Right, distribution of the relative error of the metamodel on the same
-  candidates, quantity by quantity, with boxes spanning the interquartile range
-  and whiskers the extremes.}
+  obtained from the reference solver, for each of the 67 distinct structures
+  produced by the searches, the shaded region indicating underestimation and the
+  colour the number of energy groups. Right, distribution of the relative error
+  of the metamodel on the same structures, quantity by quantity, with boxes
+  spanning the interquartile range and whiskers the extremes.}
   \label{fig:bias}
 \end{figure}
 
@@ -800,9 +834,9 @@ single search evaluated directly on the solver would require $383$. The
 metamodel therefore becomes advantageous beyond approximately nine searches, and
 the analysis presented here, which comprises one hundred searches together with
 thirteen constrained optimizations, would have required of the order of
-$43\,000$ core-hours without it. The verification of the candidates, which is
-the only part of the procedure that still calls the solver during the analysis,
-accounts for a few core-hours.
+$43\,000$ core-hours without it. The verification, which is the only part of the
+procedure that still calls the solver during the analysis, cost $2.6$
+core-hours for the 67 structures.
 
 The comparison is favourable also in the terms in which the problem was posed.
 The training set is an asset that outlives the single optimization: once
@@ -842,12 +876,24 @@ of the $124\,693$ configurations computed so far by $15.8\%$, on structures
 built by uniform spacing rules by two to four orders of magnitude, and on the
 finest structure the collapsing procedure admits, with twenty-nine groups, by
 more than four orders of magnitude. The last comparison shows that retaining
-almost all the fine boundaries is not a conservative choice, since it produces
-optically thin groups for which the diffusion solver is inaccurate, and provides
-the clearest justification for optimizing the structure rather than refining it.
-The attainable fitness was also found to saturate beyond fourteen groups, so
-that the number of groups can be chosen on the grounds of computational cost
-once that threshold is exceeded.
+almost all the fine boundaries is not a conservative choice. A structure that
+condenses almost nothing is left with the error of the deterministic model
+itself, whereas a well chosen coarse structure introduces a condensation error
+that offsets it, and it is this cancellation, verified quantity by quantity,
+that separates the two by four orders of magnitude. Refining the energy mesh is
+therefore not a route towards the Monte Carlo reference in this framework, which
+is the clearest justification for optimizing the structure rather than refining
+it. The attainable fitness was also found to saturate beyond fourteen groups, so
+that above that threshold the number of groups can be chosen on the grounds of
+computational cost alone.
+
+The workflow itself is transferable. Nothing in it is specific to this core
+beyond the training set: the metamodel replaces the solver only inside the
+search, the solver retains the last word, and the cost of building the metamodel
+is repaid after nine searches and then amortised over every subsequent analysis
+performed on the same reactor. The analyses of Secs.~\ref{sec:patterns}
+and~\ref{sec:results}, which required one hundred searches and thirteen
+constrained optimizations, would not have been attempted otherwise.
 
 
 \section*{Acknowledgements}
