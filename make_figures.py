@@ -15,7 +15,7 @@ coppie a distanza uno e una singola tribu' con la popolazione registrata.
 import sys, os, json, pathlib, warnings
 sys.path.insert(0, '..')
 warnings.filterwarnings('ignore')
-os.environ.setdefault('LFR_MODEL_DIR', os.path.abspath('../final_model_hier_refined'))
+os.environ.setdefault('LFR_MODEL_DIR', os.path.abspath('../final_model_hier_v2'))
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')

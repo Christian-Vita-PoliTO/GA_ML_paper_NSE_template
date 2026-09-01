@@ -7,13 +7,13 @@ tabular, filetti \\hline, colonne delimitate da |.
 import sys, os, json, pathlib, warnings
 sys.path.insert(0, '..')
 warnings.filterwarnings('ignore')
-os.environ.setdefault('LFR_MODEL_DIR', os.path.abspath('../final_model_hier_refined'))
+os.environ.setdefault('LFR_MODEL_DIR', os.path.abspath('../final_model_hier_v2'))
 import numpy as np
 import lfr_ga as G, lfr_workflow as W, retrain_hier as R
 
 RES  = pathlib.Path('../results')
 best = json.load(open(RES / 'best_grid.json'))
-meta = json.load(open('../final_model_hier_refined/metadata.json'))
+meta = json.load(open('../final_model_hier_v2/metadata.json'))
 fin  = json.load(open(RES / 'final_scheme_100.json'))
 std  = json.load(open(RES / 'baseline_standard.json'))
 stdv = json.load(open(RES / 'baseline_standard_valori.json'))
