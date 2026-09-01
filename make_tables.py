@@ -17,6 +17,7 @@ meta = json.load(open('../final_model_hier_v2/metadata.json'))
 fin  = json.load(open(RES / 'final_scheme_100.json'))
 ver  = json.load(open(RES / 'verify_all_distinct.json'))
 abl  = json.load(open(RES / 'arch_ablation.json'))
+bp   = json.load(open(RES / 'boundary_patterns.json'))
 std  = json.load(open(RES / 'baseline_standard.json'))
 stdv = json.load(open(RES / 'baseline_standard_valori.json'))
 dat  = json.load(open(RES / 'refined_plot_data.json'))
@@ -189,6 +190,40 @@ out.append('    Weighted shape variation & '
            f"{fam['distorsione']['importanza_peggiore']:.3f} \\\\ \\hline")
 out.append(r'\end{tabular}' + '\n' + r'\end{table}')
 
+
+# ══ Tabella — i 29 confini interni ═══════════════════════════════════════
+Eb   = bp['energie_MeV']
+rec  = bp['ricorrenza']
+wg   = np.array(bp['importanza_gruppo'])
+impb = (.5 * (wg[:-1] + wg[1:]) * 100).tolist()
+inb  = [(i + 2) in best['boundaries'] for i in range(29)]
+half = 15
+out.append(r"""
+\begin{table}[htbp]
+\centering
+\caption{The 29 internal boundaries of the fine mesh. For each one: the fraction
+of the %d distinct optimized structures that retains it, the total importance
+$\phi\phi^{\ddagger}/v$ of the two groups it separates, and whether it belongs to
+the best structure found. The boundaries retained by more than nine structures
+out of ten form the consensus skeleton; those retained by fewer than one in ten
+are never used in practice.}
+\label{tab:boundaries}
+\begin{tabular}{|r|c|c|c||r|c|c|c|}
+\hline
+\multicolumn{4}{|c||}{} & \multicolumn{4}{c|}{} \\[-2.2ex]
+$E$ [MeV] & Occ.\ [\%%] & Imp.\ [\%%] & Best &
+$E$ [MeV] & Occ.\ [\%%] & Imp.\ [\%%] & Best \\ \hline""" % len(ver['ranking']))
+for i in range(half):
+    cells = []
+    for k in (i, i + half):
+        if k >= 29:
+            cells.append(' & & & ')
+        else:
+            cells.append(f"{sci(Eb[k], 3)} & {rec[k]*100:.0f} & {impb[k]:.1f} & "
+                         + (r'$\bullet$' if inb[k] else ''))
+    out.append('    ' + ' & '.join(cells) + r' \\')
+out.append(r'\hline' + '\n' + r'\end{tabular}' + '\n' + r'\end{table}')
+
 # ══ Tabella V — bilancio computazionale ═════════════════════════════════
 SEC, NCPU = 46, 3
 NCFG = meta['n_train']
@@ -239,7 +274,17 @@ out.append(r'\hline' + '\n' + r'\end{tabular}' + '\n' + r'\end{table}')
 
 txt = '\n'.join(out)
 assert 'e+0' not in txt and 'e+1' not in txt, 'notazione scientifica non convertita'
-pathlib.Path('tables.tex').write_text(txt)
-print(f'tables.tex: {len(txt.splitlines())} righe, 7 tabelle')
+
+# una tabella per file, cosi' si inseriscono nel punto del testo in cui servono
+# e la numerazione segue l'ordine di apparizione
+import re
+TD = pathlib.Path('tables'); TD.mkdir(exist_ok=True)
+blocks = re.findall(r'\\begin\{table\}.*?\\end\{table\}', txt, re.S)
+assert len(blocks) == 8, f'{len(blocks)} blocchi trovati, ne attendevo 8'
+for blk in blocks:
+    name = re.search(r'\\label\{tab:(\w+)\}', blk).group(1)
+    (TD / f'{name}.tex').write_text(blk + '\n')
+print(f'tables/: {len(blocks)} file, ' + ', '.join(
+    re.search(r'\\label\{tab:(\w+)\}', b).group(1) for b in blocks))
 print(f"ottimo G={best['G']}  FF={best['canon_ff_true']:.4e}  "
       f"pareggio {c_meta/c_tribe:.0f} tribù")

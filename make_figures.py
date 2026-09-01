@@ -391,6 +391,43 @@ cb.set_label('energy of the boundary [MeV, log scale]')
 cb.set_ticks([])
 save('fig_boundaries.pdf')
 
+
+# ══ Fig. — quante ricerche bastano ═══════════════════════════════════════
+# Tre pannelli per tre domande diverse: il migliore converge, la probabilita'
+# di beccarlo cresce, il censimento non si chiude.
+hm = json.load(open(RES / 'how_many_tribes.json'))
+fc = hm['full_curve']
+k = np.array(fc['k'])
+fig, ax = plt.subplots(1, 3, figsize=(W1, 2.2), constrained_layout=True)
+
+bm = np.array(fc['best_mean'])
+ax[0].fill_between(k, np.array(fc['best_p10']), np.array(fc['best_p90']),
+                   color=OK, alpha=.18, lw=0)
+ax[0].plot(k, bm, color=OK)
+ax[0].axhline(bm[-1] * 1.01, color=GREY, lw=.7, ls=':')
+ax[0].set_xlabel('number of searches')
+ax[0].set_ylabel('best joint fitness')
+ax[0].set_xscale('log')
+
+ax[1].plot(k, 100 * np.array(fc['p_optimum']), color=PRED)
+for kk in (3, 10, 100):
+    ax[1].plot([kk], [100 * fc['p_optimum'][kk - 1]], 'o', ms=4, color=PRED)
+ax[1].set_xlabel('number of searches')
+ax[1].set_ylabel('chance of finding\nthe best structure [%]')
+ax[1].set_xscale('log'); ax[1].set_ylim(0, 100)
+
+dm = np.array(fc['distinct_mean'])
+ax[2].fill_between(k, np.array(fc['distinct_p10']), np.array(fc['distinct_p90']),
+                   color=TRUE, alpha=.18, lw=0)
+ax[2].plot(k, dm, color=TRUE, label='observed')
+ax[2].axhline(hm['chao1'], color=GREY, lw=.9, ls='--', label='estimated population')
+ax[2].set_xlabel('number of searches')
+ax[2].set_ylabel('distinct structures')
+ax[2].legend(loc='upper left', handlelength=1.2)
+for a in ax:
+    a.grid(alpha=.25, which='both')
+save('fig_howmany.pdf')
+
 print(f'{len(list(FIG.glob("fig_*.pdf")))} figure rigenerate, larghezza {W1} in '
       'per stampa a 150 mm')
 for f in sorted(FIG.glob('fig_*.pdf')):
