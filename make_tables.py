@@ -141,7 +141,8 @@ quantity: two built with standard spacing rules and the finest structure the
 collapsing procedure admits, obtained by suppressing a single boundary of the
 fine mesh. Each entry is the scaled contribution entering the joint fitness,
 obtained from the FRENETIC values through the fixed canonical window: unity is
-the best attainable value and 100 the worst.}
+the best attainable value and 100 the worst. Six of the fifteen terms score
+unity for all four structures, a saturation discussed in Sec.~\\ref{sec:active}.}
 \label{tab:standard}
 \begin{tabular}{|l|''' + 'c|' * len(names) + r'''}
 \hline

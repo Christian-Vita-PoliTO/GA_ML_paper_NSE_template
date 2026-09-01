@@ -314,9 +314,22 @@ together with the number of groups. The trunk feeds five family-level branches
 of $128$ and $64$ neurons, each of which feeds three configuration-level
 branches of $32$ neurons terminating in the corresponding output. Parameters are
 thus shared to the extent that the physics shares them and specialised where it
-does not. An ablation on the same data and with the same reduced training
-protocol, reported in Table~\ref{tab:ablation}, measures what each level of the
-hierarchy contributes.
+does not.
+
+An ablation quantifies what each level of the hierarchy is worth, and the result
+is not symmetric. Table~\ref{tab:ablation} reports three architectures trained
+on the same data with the same reduced protocol, a single network at constant
+learning rate. Introducing the five family necks raises the mean coefficient of
+determination from $0.9848$ to $0.9908$ and lowers the median relative error
+from $1.75$ to $1.50\%$, at the price of a $29\%$ increase in the number of
+parameters. Adding the configuration branch below them changes neither figure
+appreciably, $0.9905$ and $1.49\%$, a difference smaller than the spread between
+random initialisations. The physical quantity, and not the core configuration,
+is therefore the dimension along which the fifteen outputs actually need
+separate parameters, which is consistent with the three configurations differing
+only in the position of the control rods. The configuration branch was retained
+in the production model, since it costs $3\%$ more parameters and does no harm,
+but the gain attributable to it is not measurable.
 
 Twelve of the fifteen outputs span several orders of magnitude and are learned
 as $\log_{10}(y+10^{-6})$, while the three power fitness functions are learned
@@ -404,9 +417,10 @@ deficient either, since augmenting the description with 65 physics-informed
 descriptors, namely the lethargy widths of the condensed groups, the variation
 of the reference flux shape within each of them weighted by the importance, and
 the widths of the groups containing the sharpest spectral features, makes the
-model worse rather than better, $0.473\%$ against $0.403\%$ on the same data
-and with the same training recipe. A network of this capacity evidently
-constructs such features internally where they are useful.
+model worse rather than better on fourteen of the fifteen outputs, and worse
+overall, $0.460\%$ against $0.403\%$ on the same data and with the same training
+recipe. A network of this capacity evidently constructs such features internally
+where they are useful, and supplying them explicitly only costs it parameters.
 
 The explanation lies in the target function itself. Searching the data set for
 pairs of structures differing by exactly one boundary yields 55\,058 such pairs.
@@ -419,14 +433,16 @@ local steepness across all five families, including the flux, which is steepest
 at large values and is indeed least accurate there.
 
 The physical interpretation is direct. A small fitness value means that the
-condensed calculation reproduces the reference almost exactly, an agreement
-achieved through a fine cancellation of the errors committed in the individual
-groups. Such cancellations are fragile, and displacing a single boundary
-destroys them. A smooth interpolator cannot follow a function that varies by
-half a decade under a one-bit change of its input, and no amount of additional
-data of the same kind will remove the limitation. This is the reason why the
-workflow described in the next section does not rely on the metamodel for its
-conclusions.
+condensed calculation reproduces the Monte Carlo reference almost exactly, and
+the analysis of Sec.~\ref{sec:reference} shows how such an agreement is reached:
+not by condensing well, but by a cancellation between the error introduced by the
+condensation and the error of the deterministic model itself. A cancellation
+between two quantities of different origin is fragile, and displacing a single
+boundary destroys it. A smooth interpolator cannot follow a function that varies
+by half a decade under a one-bit change of its input, and no amount of
+additional data of the same kind will remove the limitation. This is the reason
+why the workflow described in the next section does not rely on the metamodel
+for its conclusions.
 
 \begin{figure}[htbp]
   \centering
@@ -712,6 +728,7 @@ would require of the order of five thousand core-hours on the solver.
 \end{figure}
 
 \subsection{Comparison with Reference Structures}
+\label{sec:reference}
 
 The best verified structure uses $G=18$ groups and reaches a canonical fitness
 of $8.5582\times10^{6}$, with internal boundaries at $3.679$, $0.302$, $0.1832$,
@@ -776,6 +793,34 @@ second concerns the metamodel, and explains the behaviour characterised in
 Sec.~\ref{sec:limit}: since the best structures owe their quality to a
 cancellation between two errors of different origin, their fitness is bound to
 be a fragile function of the mesh, and therefore a hard one to interpolate.
+
+\subsection{Which Terms of the Fitness Are Active}
+\label{sec:active}
+
+Table~\ref{tab:standard} shows six rows in which all four structures score
+unity, and the observation generalises. Evaluating the fifteen scaled terms for
+each of the 67 verified structures shows that eight of them sit at the minimum
+of the canonical window for every one of them: the three flux terms, the three
+generation-time terms and the delayed neutron fraction in the withdrawn and
+partially inserted configurations. The multiplication factor with the rods
+partially inserted is saturated for 61 structures out of 67. Only six terms
+therefore discriminate among the optimized structures, namely the delayed
+neutron fraction and the multiplication factor with the rods fully inserted, the
+multiplication factor with the rods withdrawn and the three power terms.
+
+This is not a defect of the formulation but the intended effect of the controls
+introduced with Eq.~(\ref{eqn:joint}). A quantity that has been reproduced to
+within the uncertainty of the reference is clipped, and stops contributing to
+the ranking, so that the search is directed towards the quantities still worth
+improving. It has, however, two consequences that matter here. The first is that
+the joint fitness of a good structure is effectively a product of six terms, not
+fifteen, which is part of the reason why it varies so sharply under a single
+boundary displacement. The second concerns the metamodel: the quantities on
+which it is least accurate, the flux functions with a median error between $2.0$
+and $2.3\%$, are precisely those that carry no information in the region where
+the search operates, while the terms that do decide the ranking are predicted to
+better than $1\%$. The accuracy of the metamodel is therefore concentrated where
+the optimization needs it, which was not designed but is worth recording.
 
 \subsection{Accuracy of the Metamodel on the Proposed Structures}
 
