@@ -271,9 +271,13 @@ for r in sd['standard']:
     ax.annotate('equal lethargy' if 'letargia' in r['nome'] else 'uniform index',
                 (r['G'], r['ff']), fontsize=7, color=TRUE,
                 xytext=(5, 3), textcoords='offset points')
+r29 = min(json.load(open(RES / 'ref29.json')), key=lambda r: r['canon_ff_true'])
+ax.plot([29], [r29['canon_ff_true']], '*', ms=11, color=TRUE, zorder=4)
+ax.annotate('finest admissible', (29, r29['canon_ff_true']), fontsize=7, color=TRUE,
+            ha='right', xytext=(-4, 2), textcoords='offset points')
 ax.set_yscale('log'); ax.set_xlabel('number of energy groups')
 ax.set_ylabel('best attainable joint fitness')
-ax.grid(alpha=.25, which='both'); ax.legend(loc='upper right', handlelength=1.4)
+ax.grid(alpha=.25, which='both'); ax.legend(loc='center right', handlelength=1.4)
 save('fig_tradeoff.pdf')
 
 # ══ Fig. — evolution of a single tribe ═══════════════════════════════════
@@ -335,9 +339,44 @@ ax[1].legend(loc='upper right', handlelength=1.4)
 ax[1].set_xlim(1, len(P))
 save('fig_tribe.pdf')
 
-print('8 figure rigenerate, larghezza 6.3 in per stampa a 150 mm (scala 0.95)')
+# (il confronto con la selezione casuale resta in results/, fuori dal paper)
+
+
+# ══ Fig. — recurring boundaries ══════════════════════════════════════════
+# A sinistra la ricorrenza confine per confine con il peso della fitness sullo
+# sfondo; a destra le due letture in competizione, il peso e la forma.
+bp = json.load(open(RES / 'boundary_patterns.json'))
+Eb = np.array(bp['energie_MeV']); rec = np.array(bp['ricorrenza']) * 100
+wg = np.array(bp['importanza_gruppo']); kk = np.array(bp['kink_spettro'])
+wb = .5 * (wg[:-1] + wg[1:]) * 100
+
+fig = plt.figure(figsize=(W1, 4.5), constrained_layout=True)
+gs = fig.add_gridspec(2, 2, height_ratios=[1.15, 1])
+a0 = fig.add_subplot(gs[0, :])
+a0.bar(Eb, rec, width=Eb * .42, color=OK, alpha=.85, zorder=3)
+a0.set_xscale('log'); a0.invert_xaxis(); a0.set_ylim(0, 105)
+a0.set_xlabel('energy of the boundary [MeV]')
+a0.set_ylabel('occurrence among\nthe solutions [%]')
+a0.grid(alpha=.25, axis='x', which='both')
+a1 = a0.twinx()
+a1.plot(Eb, wb, color=PRED, lw=1.1, marker='o', ms=2.6, zorder=4)
+a1.set_ylabel('total importance [%]', color=PRED)
+a1.tick_params(axis='y', colors=PRED); a1.grid(False)
+a1.spines['right'].set_visible(True); a1.spines['right'].set_color(PRED)
+for k, (x, lab) in enumerate(((wb, 'total importance around the boundary [%]'),
+                              (kk, 'variation of the flux shape across it'))):
+    a = fig.add_subplot(gs[1, k])
+    sc = a.scatter(x, rec, s=24, c=np.log10(Eb), cmap='viridis_r',
+                   edgecolor='white', lw=.3, zorder=3)
+    a.set_xlabel(lab); a.set_ylim(-5, 105)
+    a.set_ylabel('occurrence [%]' if k == 0 else '')
+    if k: a.set_yticklabels([])
+cb = fig.colorbar(sc, ax=fig.axes[-1], pad=.03)
+cb.set_label('energy of the boundary [MeV, log scale]')
+cb.set_ticks([])
+save('fig_boundaries.pdf')
+
+print(f'{len(list(FIG.glob("fig_*.pdf")))} figure rigenerate, larghezza {W1} in '
+      'per stampa a 150 mm')
 for f in sorted(FIG.glob('fig_*.pdf')):
     print(f'  {f.name:<22} {f.stat().st_size/1024:6.0f} kB')
-
-
-# (il confronto con la selezione casuale resta in results/, fuori dal paper)

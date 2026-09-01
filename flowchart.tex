@@ -32,7 +32,7 @@
   $\Lambda_\mathrm{eff}$, $\beta_\mathrm{eff}$};
 
 % ── addestramento del metamodello (nuovo) ───────────────────────────────
-\node[frenN, below=8mm of ref] (train) {FRENETIC (NE module)\\$89\,723$ full-core\\evaluations};
+\node[frenN, below=8mm of ref] (train) {FRENETIC (NE module)\\$91\,723$ full-core\\evaluations};
 \node[netN, below=of train] (nn) {\textbf{neural metamodel}\\hierarchical ensemble};
 
 \draw[arO] (fine) -- (serpent);
@@ -72,7 +72,7 @@
 
 % ── multi-start e giudizio finale (nuovi) ───────────────────────────────
 \node[old, round, below=6mm of term] (tribe) {tribe completed};
-\node[new, round, fill=ga!55, below=of tribe] (many) {$\times\,100$ independent tribes};
+\node[new, round, fill=ga!55, below=of tribe] (many) {$100$ independent\\tribes};
 \node[new, round, fill=ga!55, below=of many] (rank) {distinct candidates,\\ranked by fitness};
 \node[frenN, below=of rank] (verify) {\textbf{FRENETIC (NE module)}\\verification of the\\best candidates};
 \node[greyN, below=of verify] (out) {final ranking\\optimized structure};

@@ -32,43 +32,72 @@ Hypothesis & Measurement & Outcome \\ \hline
 Noise in the labels & 21\,440 configurations simulated more than once &
 Spread of $0.0000\%$ on all fifteen outputs; an independent re-run reproduces
 stored reference values to all digits \\ \hline
-Sparse data in that regime & Training points per band of the reference value &
-$13\,016$ points in the worst-performing band against $5\,223$ in the best \\ \hline
+Sparse data in that regime & Training points in the two extreme bands of the
+reference value, sampled by the same number of validation points &
+$13\,205$ points where the error is largest, $2.02\%$, against $5\,317$ where it is
+$0.62\%$ \\ \hline
 Input representation & 65 physics-informed descriptors appended to the
-30 inputs & The model becomes \emph{worse}: $0.473\%$ against $0.422\%$
+30 inputs & The model becomes \emph{worse}: $0.473\%$ against $0.403\%$
 \\ \hline
 \end{tabular}
 \end{table}
 
 \begin{table}[htbp]
 \centering
-\caption{The optimized structure against two standard ones, quantity by
-quantity. Each entry is the scaled contribution entering the joint fitness,
+\caption{The optimized structure against three reference ones, quantity by
+quantity: two built with standard spacing rules and the finest structure the
+collapsing procedure admits, obtained by suppressing a single boundary of the
+fine mesh. Each entry is the scaled contribution entering the joint fitness,
 obtained from the FRENETIC values through the fixed canonical window: unity is
-the best attainable value and 100 the worst. Six of the fifteen terms saturate
-at unity for all three structures and therefore carry no information in this
-regime.}
+the best attainable value and 100 the worst.}
 \label{tab:standard}
-\begin{tabular}{|l|c|c|c|}
+\begin{tabular}{|l|c|c|c|c|}
 \hline
-Figure of merit & Optimized & Equal lethargy ($G$=13) & Uniform index ($G$=19) \\ \hline
-    beta\_CRin0 & 1.0 & 19.1 & 51.6 \\
-    beta\_CRin55 & 24.9 & 1.0 & 1.0 \\
-    beta\_CRout & 1.0 & 52.7 & 83.6 \\
-    flux\_CRin0 & 1.0 & 1.0 & 1.0 \\
-    flux\_CRin55 & 1.0 & 1.0 & 1.0 \\
-    flux\_CRout & 1.0 & 1.0 & 1.0 \\
-    keff\_CRin0 & 1.0 & 7.2 & 9.6 \\
-    keff\_CRin55 & 53.0 & 70.4 & 72.2 \\
-    keff\_CRout & 6.4 & 1.0 & 3.2 \\
-    life\_CRin0 & 1.0 & 1.0 & 1.0 \\
-    life\_CRin55 & 1.0 & 1.0 & 1.0 \\
-    life\_CRout & 1.0 & 1.0 & 1.0 \\
-    powr\_CRin0 & 6.9 & 15.3 & 17.6 \\
-    powr\_CRin55 & 32.4 & 38.2 & 39.8 \\
-    powr\_CRout & 4.5 & 14.6 & 15.8 \\
+Figure of merit & Optimized & Equal & Uniform & Finest \\
+     &  & lethargy & index & admissible \\
+    $G$ & 18 & 13 & 19 & 29 \\ \hline
+    beta\_CRin0 & 1.0 & 19.1 & 51.6 & 57.6 \\
+    beta\_CRin55 & 24.9 & 1.0 & 1.0 & 1.0 \\
+    beta\_CRout & 1.0 & 52.7 & 83.6 & 89.5 \\
+    flux\_CRin0 & 1.0 & 1.0 & 1.0 & 1.0 \\
+    flux\_CRin55 & 1.0 & 1.0 & 1.0 & 1.0 \\
+    flux\_CRout & 1.0 & 1.0 & 1.0 & 1.0 \\
+    keff\_CRin0 & 1.0 & 7.2 & 9.6 & 11.3 \\
+    keff\_CRin55 & 53.0 & 70.4 & 72.2 & 75.7 \\
+    keff\_CRout & 6.4 & 1.0 & 3.2 & 4.6 \\
+    life\_CRin0 & 1.0 & 1.0 & 1.0 & 1.0 \\
+    life\_CRin55 & 1.0 & 1.0 & 1.0 & 1.0 \\
+    life\_CRout & 1.0 & 1.0 & 1.0 & 1.0 \\
+    powr\_CRin0 & 6.9 & 15.3 & 17.6 & 17.4 \\
+    powr\_CRin55 & 32.4 & 38.2 & 39.8 & 39.3 \\
+    powr\_CRout & 4.5 & 14.6 & 15.8 & 14.2 \\
 \hline
-    Joint fitness & $8.558\times10^{6}$ & $4.389\times10^{9}$ & $1.063\times10^{11}$ \\ \hline
+    Joint fitness & $8.558\times10^{6}$ & $4.389\times10^{9}$ & $1.063\times10^{11}$ & $1.988\times10^{11}$ \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{The two families of solutions. Above, the boundaries whose presence
+distinguishes them, with the fraction of the structures of each family that
+retains the boundary. Below, the properties of the two families: the median
+joint fitness verified with the reference solver, and the variation of the
+reference flux shape within the groups, weighted by the total importance that
+appears in the flux fitness function.}
+\label{tab:families}
+\begin{tabular}{|c|c|c|}
+\hline
+Boundary [MeV] & Family A [\%] & Family B [\%] \\ \hline
+    $2.231$ & 0 & 100 \\
+    $3.020\times10^{-1}$ & 100 & 0 \\
+    $3.679$ & 100 & 3 \\
+    $5.400\times10^{-7}$ & 100 & 9 \\
+    $1.371\times10^{-5}$ & 25 & 86 \\
+\hline
+    Property & Family A & Family B \\ \hline
+    Distinct structures & 32 & 35 \\
+    Median joint fitness & $9.105\times10^{6}$ & $1.055\times10^{7}$ \\
+    Weighted shape variation & 0.138 & 0.377 \\ \hline
 \end{tabular}
 \end{table}
 
@@ -81,7 +110,7 @@ search of 100 individuals over 100 generations.}
 \begin{tabular}{|l|r|}
 \hline
 Item & Core-hours \\ \hline
-Building the metamodel ($89\,723$ configurations, once) & 3439 \\
+Building the metamodel ($91\,723$ configurations, once) & 3516 \\
 One tribe evaluated directly with FRENETIC & 383 \\
 Break-even & 9 tribes \\ \hline
 This work: 100 tribes on the metamodel & 0.6 \\

@@ -18,6 +18,9 @@ fin  = json.load(open(RES / 'final_scheme_100.json'))
 std  = json.load(open(RES / 'baseline_standard.json'))
 stdv = json.load(open(RES / 'baseline_standard_valori.json'))
 dat  = json.load(open(RES / 'refined_plot_data.json'))
+r29  = json.load(open(RES / 'ref29.json'))
+fam  = json.load(open(RES / 'families_why.json'))
+famv = json.load(open(RES / 'families_verified.json'))
 win  = W.canonical_window()
 
 esc = lambda s: s.replace('_', r'\_')
@@ -64,6 +67,8 @@ out.append(r'    \textbf{Ensemble} & \textbf{%.5f} & \textbf{%.3f} & & & \\ \hli
 out.append(r'\end{tabular}' + '\n' + r'\end{table}')
 
 # ══ Tabella II — le tre ipotesi escluse ══════════════════════════════════
+dsm  = json.load(open(RES / 'diagnose_small.json'))['keff_CRin0']
+feat = json.load(open(RES / 'train_features_metrics.json'))
 out.append(r"""
 \begin{table}[htbp]
 \centering
@@ -74,37 +79,47 @@ each of them out.}
 \begin{tabular}{|p{2.9cm}|p{4.55cm}|p{4.55cm}|}
 \hline
 Hypothesis & Measurement & Outcome \\ \hline
-Noise in the labels & 21\,440 configurations simulated more than once &
-Spread of $0.0000\%$ on all fifteen outputs; an independent re-run reproduces
+Noise in the labels & %s configurations simulated more than once &
+Spread of $0.0000\%%$ on all fifteen outputs; an independent re-run reproduces
 stored reference values to all digits \\ \hline
-Sparse data in that regime & Training points per band of the reference value &
-$13\,016$ points in the worst-performing band against $5\,223$ in the best \\ \hline
+Sparse data in that regime & Training points in the two extreme bands of the
+reference value, sampled by the same number of validation points &
+$%s$ points where the error is largest, $%.2f\%%$, against $%s$ where it is
+$%.2f\%%$ \\ \hline
 Input representation & 65 physics-informed descriptors appended to the
-30 inputs & The model becomes \emph{worse}: $0.473\%$ against $0.422\%$
+30 inputs & The model becomes \emph{worse}: $%.3f\%%$ against $%.3f\%%$
 \\ \hline
 \end{tabular}
-\end{table}""")
+\end{table}""" % (r'21\,440', f"{dsm[0]['n_train']:,}".replace(',', r'\,'),
+                  dsm[0]['err_rel'], f"{dsm[-1]['n_train']:,}".replace(',', r'\,'),
+                  dsm[-1]['err_rel'], feat['median_rel_err_pct_ext'],
+                  meta['median_rel_err_pct_ext']))
 
-# ══ Tabella III — ottimizzata contro le standard ═════════════════════════
-vals = {'Optimized': best['frenetic_values']}
+# ══ Tabella III — ottimizzata contro le griglie di riferimento ═══════════
+b29 = min(r29, key=lambda r: r['canon_ff_true'])
+vals = {('Optimized', '', best['G']): best['frenetic_values']}
 for r in std['standard']:
     key = [k for k in stdv if k.startswith(r['nome'][:8])][0]
-    lbl = ('Equal lethargy' if 'letargia' in r['nome'] else 'Uniform index')
-    vals[f"{lbl} ($G$={r['G']})"] = stdv[key]
+    lbl = ('Equal', 'lethargy') if 'letargia' in r['nome'] else ('Uniform', 'index')
+    vals[(*lbl, r['G'])] = stdv[key]
+vals[('Finest', 'admissible', 29)] = b29['frenetic_values']
 names = list(vals)
+hdr = ('Figure of merit & ' + ' & '.join(n[0] for n in names) + r' \\' + '\n'
+       + '     & ' + ' & '.join(n[1] for n in names) + r' \\' + '\n'
+       + '    $G$ & ' + ' & '.join(str(n[2]) for n in names) + r' \\ \hline')
 out.append(r'''
 \begin{table}[htbp]
 \centering
-\caption{The optimized structure against two standard ones, quantity by
-quantity. Each entry is the scaled contribution entering the joint fitness,
+\caption{The optimized structure against three reference ones, quantity by
+quantity: two built with standard spacing rules and the finest structure the
+collapsing procedure admits, obtained by suppressing a single boundary of the
+fine mesh. Each entry is the scaled contribution entering the joint fitness,
 obtained from the FRENETIC values through the fixed canonical window: unity is
-the best attainable value and 100 the worst. Six of the fifteen terms saturate
-at unity for all three structures and therefore carry no information in this
-regime.}
+the best attainable value and 100 the worst.}
 \label{tab:standard}
 \begin{tabular}{|l|''' + 'c|' * len(names) + r'''}
 \hline
-Figure of merit & ''' + ' & '.join(esc(n) for n in names) + r' \\ \hline')
+''' + hdr)
 prod = dict.fromkeys(names, 1.0)
 for c in W.COLS:
     row = [esc(c)]
@@ -117,9 +132,39 @@ out.append(r'\hline')
 out.append('    Joint fitness & ' + ' & '.join(sci(prod[n]) for n in names) + r' \\ \hline')
 out.append(r'\end{tabular}' + '\n' + r'\end{table}')
 
-# ══ Tabella IV — bilancio computazionale ═════════════════════════════════
+# ══ Tabella IV — le due famiglie ═════════════════════════════════════════
+dsc = fam['discriminanti'][:5]
+out.append(r'''
+\begin{table}[htbp]
+\centering
+\caption{The two families of solutions. Above, the boundaries whose presence
+distinguishes them, with the fraction of the structures of each family that
+retains the boundary. Below, the properties of the two families: the median
+joint fitness verified with the reference solver, and the variation of the
+reference flux shape within the groups, weighted by the total importance that
+appears in the flux fitness function.}
+\label{tab:families}
+\begin{tabular}{|c|c|c|}
+\hline
+Boundary [MeV] & Family A [\%] & Family B [\%] \\ \hline''')
+for d_ in dsc:
+    out.append(f"    {sci(d_['E_MeV'], 4)} & {d_['freq_A']*100:.0f} & "
+               f"{d_['freq_B']*100:.0f} \\\\")
+out.append(r'\hline')
+out.append(r'    Property & Family A & Family B \\ \hline')
+out.append(f"    Distinct structures & {fam['n_A']} & {fam['n_B']} \\\\")
+out.append('    Median joint fitness & '
+           f"{sci(float(np.median(famv['famA_true'])))} & "
+           f"{sci(float(np.median([r['canon_ff_true'] for r in famv['famB_verificate']])))} \\\\")
+out.append('    Weighted shape variation & '
+           f"{fam['distorsione']['importanza_migliore']:.3f} & "
+           f"{fam['distorsione']['importanza_peggiore']:.3f} \\\\ \\hline")
+out.append(r'\end{tabular}' + '\n' + r'\end{table}')
+
+# ══ Tabella V — bilancio computazionale ═════════════════════════════════
 SEC, NCPU = 46, 3
-c_meta = 89723 * SEC * NCPU / 3600
+NCFG = meta['n_train']
+c_meta = NCFG * SEC * NCPU / 3600
 c_tribe = fin['pop'] * fin['gen'] * SEC * NCPU / 3600
 out.append(r'''
 \begin{table}[htbp]
@@ -131,17 +176,18 @@ search of %d individuals over %d generations.}
 \begin{tabular}{|l|r|}
 \hline
 Item & Core-hours \\ \hline
-Building the metamodel ($89\,723$ configurations, once) & %.0f \\
+Building the metamodel (%s configurations, once) & %.0f \\
 One tribe evaluated directly with FRENETIC & %.0f \\
 Break-even & %.0f tribes \\ \hline
 This work: %d tribes on the metamodel & %.1f \\
 Equivalent cost avoided & %.0f \\ \hline
 \end{tabular}
-\end{table}''' % (SEC, NCPU, fin['pop'], fin['gen'], c_meta, c_tribe, c_meta / c_tribe,
+\end{table}''' % (SEC, NCPU, fin['pop'], fin['gen'], f'${NCFG//1000}\\,{NCFG%1000:03d}$',
+                  c_meta, c_tribe, c_meta / c_tribe,
                   fin['tribes'], fin['n_new_frenetic'] * SEC * NCPU / 3600,
                   fin['tribes'] * c_tribe))
 
-# ══ Tabella V — classifica verificata ════════════════════════════════════
+# ══ Tabella VI — classifica verificata ════════════════════════════════════
 out.append(r'''
 \begin{table}[htbp]
 \centering
@@ -163,6 +209,6 @@ out.append(r'\hline' + '\n' + r'\end{tabular}' + '\n' + r'\end{table}')
 txt = '\n'.join(out)
 assert 'e+0' not in txt and 'e+1' not in txt, 'notazione scientifica non convertita'
 pathlib.Path('tables.tex').write_text(txt)
-print(f'tables.tex: {len(txt.splitlines())} righe, 5 tabelle')
+print(f'tables.tex: {len(txt.splitlines())} righe, 6 tabelle')
 print(f"ottimo G={best['G']}  FF={best['canon_ff_true']:.4e}  "
       f"pareggio {c_meta/c_tribe:.0f} tribù")
