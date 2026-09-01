@@ -46,16 +46,16 @@ simulations is a combinatorial problem whose objective can only be evaluated by
 running the reference solver, so that a thorough exploration of the design space
 is prohibitively expensive. We replace that evaluation with a neural metamodel
 and keep the reference code as the final judge. The metamodel is a hierarchical,
-five-network ensemble trained on 89\,723 full-core evaluations of the NEA
+five-network ensemble trained on 91\,723 full-core evaluations of the NEA
 lead-cooled fast reactor benchmark performed with the neutronics module of
 FRENETIC; it predicts fifteen fitness functions at once---five physical
 quantities for each of three control-rod configurations---with a mean
-coefficient of determination of $0.99631$ on an external validation set and a
-median relative error of $0.422\%$, and it evaluates a candidate structure
+coefficient of determination of $0.99634$ on an external validation set and a
+median relative error of $0.403\%$, and it evaluates a candidate structure
 several orders of magnitude faster than the solver. One hundred independent
 genetic searches then take $79$~s in total, and the fifteen best distinct
 candidates are verified with FRENETIC. The resulting 18-group structure is
-better than every one of the 122\,693 configurations computed to date, by
+better than every one of the 124\,693 configurations computed to date, by
 $15.8\%$, and better than a structure with uniformly spaced boundaries and the
 same number of groups by four orders of magnitude. Two findings qualify the
 approach rather than advertise it. First, the residual error of the metamodel is
@@ -231,11 +231,11 @@ modification described below.
 
 \subsection{Data}
 
-The training set comprises 89\,723 distinct structures for which the neutronics
+The training set comprises 91\,723 distinct structures for which the neutronics
 module of FRENETIC has been run over the three configurations, accumulated over
-an initial space-filling pool and sixteen rounds of active learning in which the
-configurations to be simulated next were chosen by the disagreement of an
-ensemble of networks. A further 1\,700 structures form an external validation
+an initial space-filling pool and successive batches in which the configurations
+to be simulated next were chosen by the disagreement of an ensemble of five
+networks, averaged over the nine most difficult outputs. A further 1\,700 structures form an external validation
 set that is never used in training, nor for early stopping, nor for any
 hyperparameter decision; every accuracy figure quoted in this paper refers to
 it.
@@ -277,8 +277,8 @@ from the schedule and not from the data.
 
 Table~\ref{tab:accuracy} reports the accuracy per output and
 Fig.~\ref{fig:scatter} the corresponding predicted-against-reference scatter.
-The ensemble reaches a mean coefficient of determination of $0.99631$ and a
-median relative error of $0.422\%$. Accuracy is not uniform: the power fitness
+The ensemble reaches a mean coefficient of determination of $0.99634$ and a
+median relative error of $0.403\%$. Accuracy is not uniform: the power fitness
 functions are predicted to better than $0.2\%$, whereas the flux ones are the
 least accurate, at about $2.4\%$.
 
@@ -440,16 +440,17 @@ decides what is best.
 
 \subsection{Behaviour of the Search}
 
-One hundred tribes produced 61 distinct structures. Figure~\ref{fig:search}
+One hundred tribes produced 67 distinct structures. Figure~\ref{fig:search}
 shows the convergence of all of them on the common canonical scale, the
 distribution of the generation at which each tribe reaches within $1\%$ of its
 own final value, and where the tribes land in the plane of group count against
 fitness.
 
-Only five tribes in a hundred finish within $5\%$ of the best predicted fitness,
-against a median that is $17\%$ worse. This is the quantitative justification
-for multi-start: the plateau of good solutions is narrow in probability even
-where it is flat in value, and reaching it at any single attempt is unlikely.
+A quarter of the tribes finish within $5\%$ of the best predicted fitness, and
+the median one is $15\%$ worse. Multi-start is therefore useful but not for the
+reason one might expect: the plateau is reached often enough, and what a single
+search cannot guarantee is reaching the \emph{right} plateau, as the following
+section shows.
 
 \begin{figure}[htbp]
   \centering
@@ -490,13 +491,13 @@ generation 15, while the best individual still improves afterwards.
 \subsection{Two Families of Solutions}
 
 The 61 distinct structures do not form a single cloud. Clustering them by
-Hamming distance separates two groups whose mean internal distance is $4.4$
-boundaries against $11.1$ between them, and the separation is almost binary in
+Hamming distance separates two groups whose mean internal distance is $5.0$
+boundaries against $10.4$ between them, and the separation is almost binary in
 terms of specific boundaries: one family places fast-region cuts at $3.679$ and
 $0.302$~MeV and includes a thermal cut at $5.4\times10^{-7}$~MeV, while the
 other places them at $2.231$ and $0.111$~MeV instead
-(Fig.~\ref{fig:structure}). Roughly half of the tribes converge to each: 52
-against 48 in the run reported here.
+(Fig.~\ref{fig:structure}). Roughly half of the tribes converge to each: 53
+against 47 in the run reported here.
 
 The distinction is not one of group count---the two families span overlapping
 ranges of $G$---and it is not an artefact of the metamodel. Verifying the six
@@ -525,10 +526,11 @@ without any indication that it has done so.
 \subsection{Verification and the Optimism of a Surrogate-Driven Search}
 
 Table~\ref{tab:ranking} reports the fifteen verified candidates. The median
-disagreement between predicted and true joint fitness is $5.8\%$. The
-metamodel's own first choice is ranked third by FRENETIC, but the two differ by
-$0.72\%$ in true fitness---well below the metamodel's resolution, and a
-distinction it neither can nor needs to make.
+disagreement between predicted and true joint fitness is $3.0\%$, and the
+metamodel's own first choice is also the best according to FRENETIC. That
+agreement should not be over-read: the second-ranked structure is only $0.55\%$
+behind the first in true fitness, far below the resolution of the metamodel, so
+the correct identification of the leader is to a large extent fortunate.
 
 More instructive is the direction of the error: thirteen of the fifteen
 predictions are \emph{under}-estimates (Fig.~\ref{fig:bias}). This is not
@@ -536,12 +538,12 @@ random. A search minimising a predicted quantity is attracted both to genuinely
 good structures and to structures the metamodel underrates, and cannot
 distinguish between them. Increasing the number of tribes therefore increases
 the number of opportunities to exploit the metamodel's optimism, which makes the
-verification stage more necessary rather than less. The same figure shows that
-the error is not diffuse: on the proposed structures the metamodel is accurate
-to better than $5\%$ on fourteen of the fifteen quantities, and errs
-substantially on one---the multiplication factor in the partially inserted
-configuration---which is the small-value regime characterised above, appearing
-here in operation rather than in diagnosis.
+verification stage more necessary rather than less. The same figure shows where the error sits: eleven of the fifteen quantities
+are predicted to better than $1.3\%$ on the proposed structures, while the
+multiplication factor in the partially inserted configuration and the flux with
+the rods half inserted reach median errors of $8.0\%$ and $6.9\%$. The first of
+these is the small-value regime characterised above, appearing here in operation
+rather than in diagnosis.
 
 \begin{figure}[htbp]
   \centering
@@ -568,7 +570,7 @@ $5.4\times10^{-7}$~MeV. Like the solutions reported in
 Ref.~\cite{prevMulti}, it uses more than fifteen groups, confirming that the
 optimization is driven towards the upper end of the admissible range.
 
-It is better than every one of the 122\,693 configurations computed to date, by
+It is better than every one of the 124\,693 configurations computed to date, by
 $15.8\%$ with respect to the best among them. Against structures built by the
 obvious rules it is better by orders of magnitude: a structure with uniformly
 spaced boundary indices and the same 19 boundaries is worse by a factor of
@@ -614,7 +616,7 @@ have cost some five thousand core-hours on the solver.
 \subsection{Cost}
 
 Table~\ref{tab:cost} gives the budget. Building the metamodel cost about
-$3\,439$ core-hours of FRENETIC, whereas one tribe evaluated directly on the
+$3\,516$ core-hours of FRENETIC, whereas one tribe evaluated directly on the
 solver would cost $383$. The metamodel therefore does not pay for itself below
 about nine tribes---a point worth stating plainly, since for a single
 optimization a direct search is cheaper. Above that threshold the advantage
@@ -659,11 +661,11 @@ that cost again.
 \section{Conclusions}
 \label{sec:conclusion}
 
-A neural metamodel trained on 89\,723 full-core evaluations predicts fifteen
+A neural metamodel trained on 91\,723 full-core evaluations predicts fifteen
 fitness functions for a candidate energy structure with a median relative error
-of $0.422\%$, fast enough that one hundred independent genetic searches complete
+of $0.403\%$, fast enough that one hundred independent genetic searches complete
 in $79$~s. Verified by the reference solver, the resulting 18-group structure
-improves on the best of 122\,693 previously computed configurations by $15.8\%$
+improves on the best of 124\,693 previously computed configurations by $15.8\%$
 and on standard constructions by orders of magnitude, and the attainable
 accuracy is shown to saturate at about fourteen groups.
 
