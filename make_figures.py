@@ -30,6 +30,7 @@ W1 = 6.3                                   # larghezza standard, pollici
 FAM = {'beta': '#8E5BB5', 'flux': '#B5502D', 'keff': '#2F7D5A',
        'life': '#B98419', 'powr': '#3B7A99'}
 PRED, TRUE, OK, GREY = '#3B7A99', '#B5502D', '#2F7D5A', '#8A9BA3'
+newc = '#1F6FB2'
 FAMS = ['beta', 'flux', 'keff', 'life', 'powr']
 CFGS = ['CRout', 'CRin0', 'CRin55']
 CFGLBL = {'CRout': 'withdrawn', 'CRin0': 'partially inserted',
@@ -121,7 +122,7 @@ for i, b in enumerate(B):
 pairs = np.array(pairs)
 diag = json.load(open(RES / 'diagnose_small.json'))
 
-fig, ax = plt.subplots(1, 3, figsize=(W1, 2.3), constrained_layout=True)
+fig, ax = plt.subplots(1, 3, figsize=(W1, 2.45), constrained_layout=True)
 for fam in FAMS:
     col = f'{fam}_CRin0'; i = OUTS.index(col)
     a_, b_ = Ytb[pairs[:, 0], i], Ytb[pairs[:, 1], i]
@@ -147,10 +148,12 @@ for fam in FAMS:
     ax[2].scatter(sx, sy, s=18, color=FAM[fam], edgecolor='white', lw=.35)
 ax[0].set_xlabel('reference value'); ax[0].set_ylabel('change per boundary\n[decades]')
 ax[1].set_xlabel('reference value'); ax[1].set_ylabel('relative error [%]')
-ax[2].set_xlabel('change per boundary [decades]'); ax[2].set_ylabel('relative error [%]')
+ax[2].set_xlabel('change per boundary [decades]', fontsize=7)
+ax[2].set_ylabel('relative error [%]')
 for a in ax:
     a.set_xscale('log'); a.set_yscale('log'); a.grid(alpha=.25, which='both')
-ax[0].legend(ncol=2, handlelength=1.2, columnspacing=1.0)
+ax[0].legend(ncol=2, handlelength=1.0, columnspacing=.8, fontsize=7,
+             loc='lower left', borderaxespad=.15)
 save('fig_steepness.pdf')
 
 # ══ Fig. — behaviour of the searches ═════════════════════════════════════
@@ -276,6 +279,13 @@ for r in sd['standard']:
     ax.annotate('equal lethargy' if 'letargia' in r['nome'] else 'uniform index',
                 (r['G'], r['ff']), fontsize=7, color=TRUE,
                 xytext=(5, 3), textcoords='offset points')
+ang = json.load(open(RES / 'angela_tribes.json'))['tribu']
+for nm, r in ang.items():
+    ax.plot([r['G']], [r['canon_ff_true']], '^', ms=6, color=newc, zorder=5,
+            markeredgecolor='white', markeredgewidth=.4,
+            label='three reference tribes' if nm == list(ang)[0] else None)
+    ax.annotate(nm, (r['G'], r['canon_ff_true']), fontsize=6.5, color=newc,
+                xytext=(0, 6), textcoords='offset points', ha='center')
 r29 = min(json.load(open(RES / 'ref29.json')), key=lambda r: r['canon_ff_true'])
 ax.plot([29], [r29['canon_ff_true']], '*', ms=11, color=TRUE, zorder=4)
 ax.annotate('finest admissible', (29, r29['canon_ff_true']), fontsize=7, color=TRUE,

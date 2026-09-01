@@ -76,7 +76,7 @@ by two to four orders of magnitude.
 \label{sec:intro}
 
 Full-core deterministic simulations of fast reactors, and in particular the
-transient analyses for which they are ultimately intended, are performed on a
+transient analyses, are performed on a
 condensed energy mesh. The number of groups and the placement of their
 boundaries determine how faithfully the condensed calculation reproduces a
 Monte Carlo reference, and the dependence is neither smooth nor intuitive, since
@@ -95,7 +95,7 @@ For the lead-cooled fast reactor the problem has been developed along a
 consistent line of work~\cite{lfrGA2022,lfrGA2024,prevGA}, culminating in the
 multi-configuration formulation of Ref.~\cite{prevMulti}, in which a single
 energy structure is optimized simultaneously for three control-rod
-configurations, so that the same mesh remains adequate as the core evolves
+configurations, so that the same grid remains adequate as the core evolves
 during a transient. That study reported an observation which motivates the
 present one. The genetic algorithm was run from three different random seeds,
 referred to as tribes, and the three tribes converged to three different
@@ -110,7 +110,7 @@ the search space is combinatorial rather than continuous and contains
 $2^{29}\approx5.4\times10^{8}$ elements, on which no notion of gradient exists.
 The objective is the product of fifteen terms, each measuring the agreement of a
 different physical quantity in a different core configuration, and the terms do
-not respond in the same way to the displacement of a boundary: a change that
+not respond in the same way to the displacement of a boundary e.g.: a change that
 improves the multiplication factor may worsen the flux distribution. A
 measurement reported in Sec.~\ref{sec:limit} quantifies how abrupt the resulting
 surface is. Among the structures available in this work, those differing by
@@ -125,29 +125,29 @@ Two consequences follow. The first is that the result of a single optimization
 should not be interpreted as the optimal structure, but as one member of a set
 whose extent is unknown. The second is that any statement of general validity
 about where the boundaries of a good structure should lie requires many
-independent searches, not one. Both consequences call for the same remedy, a
-number of tribes one or two orders of magnitude larger than what has been
-attempted so far.
+independent searches, not one. Both consequences call for the same remedy, a higher
+number of simulated tribes could provide a better answer to the need to find an optimized
+energy grid.
 
-That remedy is not affordable within the existing workflow. The fitness of a
+That remedy is not affordable within the workflow shown in Ref.~\cite{prevMulti}. The fitness of a
 candidate structure can only be established by running the reference
 calculation, and a population-based search requires one such evaluation for
 every individual of every generation. In the present case a single evaluation,
-covering the three control-rod configurations, costs $46$~s on three cores with
+covering the three control-rod configurations, costs on average $46$~s on three cores with
 the neutronics module of FRENETIC~\cite{frenetic,freneticBench}, so that one
 search of a hundred individuals over a hundred generations amounts to
 approximately $383$ core-hours. One hundred such searches would exceed
 $38\,000$ core-hours, which places the analysis out of reach.
 
-The present work removes the bottleneck by replacing the evaluation inside the
-search with a neural metamodel of the fitness functions, while leaving the
+The present work removes this bottleneck by replacing the evaluation inside the
+search with a neural network of the fitness functions, while leaving the
 reference solver in charge of the conclusions. The metamodel is used to explore,
 to rank, and to propose; every structure that the searches produce is then
 recomputed with FRENETIC, and all the quantities discussed in the following
 sections are those returned by the solver. The metamodel is therefore an
 accelerator of the search and not a substitute for the physics, an arrangement
-which also protects the results from the regions in which its accuracy is known
-to degrade.
+which also protects the results from the regions in which its accuracy is hard to
+learn for the metamodel.
 
 Section~\ref{sec:problem} defines the optimization problem, including the
 chromosome representation and the fitness functions inherited from
@@ -428,9 +428,17 @@ The median change of the base-ten logarithm of the fitness function across a
 pair amounts to $0.414$ decades in the lowest band of multiplication-factor
 deviations, against $0.024$ decades in the highest, a factor of seventeen, and
 to $0.395$ against $0.044$ decades for the generation time.
-Figure~\ref{fig:smallvalue} shows that the error of the metamodel follows this
-local steepness across all five families, including the flux, which is steepest
-at large values and is indeed least accurate there.
+The correspondence with the accuracy of the metamodel is direct.
+Figure~\ref{fig:smallvalue} places the two quantities side by side, band by band
+and family by family: where the target changes most under a single boundary
+displacement, the metamodel errs most. Over the thirty pairs of measurements the
+rank correlation between local steepness and relative error is $+0.70$, with a
+probability of $2\times10^{-5}$ under the null hypothesis, and it is unchanged
+at $+0.68$ if the flux is excluded. The flux is worth keeping in view because it
+is the control case: its steepness grows with the value of the fitness function
+instead of falling, and its accuracy degrades in the same direction, opposite to
+the other four families. What the error tracks is therefore the local steepness
+of the target and not the magnitude of the quantity.
 
 The physical interpretation is direct. A small fitness value means that the
 condensed calculation reproduces the Monte Carlo reference almost exactly, and
@@ -451,10 +459,11 @@ for its conclusions.
   that differ by exactly one boundary, as the median change of the base-ten
   logarithm of the fitness function across a pair. Centre, median relative error
   of the metamodel over the same bands of the reference value. Right, the two
-  quantities plotted against each other, one point per band and family. The
-  error of the metamodel follows the local steepness of the target rather than
-  the magnitude of the quantity, which is why the flux behaves in the opposite
-  way with respect to the other four families.}
+  quantities plotted against each other, one point per band and family, with a
+  rank correlation of $+0.70$. The error of the metamodel follows the local
+  steepness of the target and not the magnitude of the quantity, which is why
+  the flux, steep where its values are large, behaves in the opposite way with
+  respect to the other four families.}
   \label{fig:smallvalue}
 \end{figure}
 
@@ -540,6 +549,7 @@ $5\%$ of the best predicted fitness and the median one is $15\%$ worse, which
 confirms the observation of Ref.~\cite{prevMulti} on a much larger sample: a
 single search returns a good structure with substantial probability, but which
 structure it returns is not determined by the problem alone.
+Section~\ref{sec:howmany} makes this quantitative.
 
 \begin{figure}[htbp]
   \centering
@@ -575,6 +585,52 @@ the solution after the joint fitness has apparently settled.
   median and the best individual.}
   \label{fig:tribe}
 \end{figure}
+
+\subsection{How Many Searches Are Enough}
+\label{sec:howmany}
+
+The number of searches was not chosen a priori, and the same data allow it to be
+justified after the fact. The question has three different answers depending on
+what is being asked of the sample.
+
+The first concerns the optimum, and here the sample is more than sufficient. By
+re-drawing the hundred outcomes in random order many times, the best structure
+found after twenty searches is on average within $0.5\%$ of the value reached
+after a hundred, and after thirty searches within $0.2\%$. The optimum itself
+was produced by three of the hundred searches, which gives the premise of this
+work its quantitative form: a campaign of three tribes has a probability of
+$9\%$ of finding it, one of ten tribes $26\%$, one of twenty $46\%$ and one of
+fifty $78\%$. The best structure is therefore not something a small campaign
+misses by a little; it is something a small campaign is unlikely to see at all.
+
+The second concerns the regularities of Sec.~\ref{sec:patterns}, and here too
+the sample is sufficient, for a reason worth stating because it is not obvious.
+Resampling the searches shows that the rank correlation between the selection
+frequency of a boundary and the importance surrounding it is already $+0.54$
+with ten searches, and that going to a hundred narrows its ninetieth-percentile
+interval from $[+0.43,+0.60]$ to $[+0.49,+0.57]$ without moving the estimate.
+The reason is that the correlation is computed over the 29 internal boundaries
+of the fine mesh, and that number does not grow with the number of searches.
+More searches stabilise the frequency attached to each boundary; only a finer
+starting mesh would add degrees of freedom to the test. The separation into two
+families is equally settled: the silhouette coefficient of the Hamming distance
+is $0.514$ for two clusters and falls to $0.391$ for three, the third cluster
+being a single structure.
+
+The third question is the one the sample does not answer. Treating the searches
+as draws from a population of reachable structures, 54 of the 67 were seen once
+and only 5 twice, which puts the Good-Turing coverage at $46\%$ and the
+Chao1 estimate of the reachable population at about 300 structures, of which
+this campaign has seen roughly one fifth. New structures were still appearing at
+a rate of $0.55$ per search at the hundredth. A complete census of the good
+structures is therefore out of reach, and no claim of that kind is made here.
+The consequence is visible in the least robust of the results above: resampling
+the 67 structures reproduces the seven-boundary consensus skeleton exactly in
+$72\%$ of the replicas and the set of five never-selected boundaries in $43\%$,
+because both are defined by a threshold that a boundary near $90$ or $10\%$
+crosses in one direction or the other depending on the sample. The frequencies
+themselves are stable; their classification into three groups is a convenience
+of presentation.
 
 \subsection{Two Families of Solutions}
 
@@ -723,7 +779,9 @@ would require of the order of five thousand core-hours on the solver.
   groups, obtained by repeating the searches with the group count constrained.
   Each point of the solid curve was verified with the reference solver, while
   the dashed curve is the corresponding prediction of the metamodel. The stars
-  mark the two standard constructions discussed in the text.}
+  mark the reference constructions discussed in the text, and the triangles the
+  structures obtained by the three tribes of Ref.~\cite{prevMulti}, recomputed
+  here on the same canonical scale.}
   \label{fig:tradeoff}
 \end{figure}
 
@@ -741,7 +799,21 @@ contains the whole consensus skeleton. It outperforms every one of the
 $124\,693$ configurations computed to date, by $15.8\%$ with respect to the best
 among them, and none of those configurations reaches its fitness.
 
-Table~\ref{tab:standard} compares it with three reference constructions. A
+The comparison that matters most is with the three tribes of
+Ref.~\cite{prevMulti}, whose structures are the outcome of the same problem
+solved with the reference solver in the loop. They are shown in
+Fig.~\ref{fig:tradeoff} together with the curve of the best attainable fitness,
+and they lie above it: at $G=20$ the best of the three reaches
+$1.38\times10^{7}$ against $8.99\times10^{6}$ attainable, at $G=14$
+$1.83\times10^{7}$ against $8.78\times10^{6}$, and at $G=13$ $6.38\times10^{7}$
+against $1.06\times10^{7}$. The gap, between $1.5$ and $6.0$ times at equal
+group count, is the margin that the additional searches buy, and it is not a
+criticism of that work: three tribes are what its computational budget allowed,
+and the present analysis exists because the outcome of three tribes was seen to
+depend on the seed.
+
+Table~\ref{tab:standard} compares the optimized structure with three further
+reference constructions. A
 structure with uniformly spaced boundary indices and the same number of
 boundaries is worse by a factor of $1.2\times10^{4}$, and one with uniform
 lethargy spacing by a factor of $5.1\times10^{2}$. It is worth noting that a
