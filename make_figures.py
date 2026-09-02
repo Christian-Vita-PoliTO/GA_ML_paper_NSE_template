@@ -172,26 +172,60 @@ q = np.percentile(np.array([h[:L] for h in H]), [10, 50, 90], axis=0)
 g = np.arange(1, L + 1)
 gen1 = [int(np.argmax(h <= h[-1] * 1.01)) + 1 for h in H]
 
-fig, ax = plt.subplots(1, 3, figsize=(W1, 2.3), constrained_layout=True)
-for h in H:
-    ax[0].plot(np.arange(1, len(h) + 1), h, color=GREY, lw=.3, alpha=.4)
-ax[0].fill_between(g, q[0], q[2], color=PRED, alpha=.22)
-ax[0].plot(g, q[1], color=PRED, lw=1.6)
-ax[0].set_yscale('log'); ax[0].set_xlabel('generation')
-ax[0].set_ylabel('best fitness of the tribe')
-ax[1].hist(gen1, bins=np.arange(0, 105, 8), color=OK, alpha=.85, edgecolor='white', lw=.4)
-ax[1].set_xlabel('generation of convergence'); ax[1].set_ylabel('number of tribes')
-ax[2].scatter(Gs, ffn, s=14, color=PRED, alpha=.5, edgecolor='white', lw=.25,
-              label='metamodel')
-for r in rank:
-    ax[2].annotate('', xy=(r['G'], float(r['canon_ff_true'])),
-                   xytext=(r['G'], float(r['canon_ff_nn'])),
-                   arrowprops=dict(arrowstyle='->', color=TRUE, lw=.7, alpha=.85))
-ax[2].scatter([r['G'] for r in rank], [float(r['canon_ff_true']) for r in rank],
-              s=18, color=TRUE, marker='D', zorder=3, label='reference solver')
+# ogni tribu' rapportata al PROPRIO valore finale: l'eccesso in percentuale
+# porta in evidenza l'altopiano, che sull'asse assoluto e' schiacciato in fondo
+E = np.array([h[:L] / h[L - 1] * 100 - 100 for h in H])
+qe = np.percentile(E, [10, 50, 90], axis=0)
+
+# esito di ciascuna tribu' sul valore VERO, tramite la struttura a cui e' arrivata
+true_of = {tuple(r['boundaries']): r['canon_ff_true'] for r in rank}
+tv_tribe = np.array([true_of[tuple(s['boundaries'])] for s in sols])
+best_true = tv_tribe.min()
+ecc = np.sort(tv_tribe / best_true - 1) * 100
+frac = np.arange(1, len(ecc) + 1) / len(ecc) * 100
+
+# famiglie, per colorare il terzo pannello
+from scipy.cluster.hierarchy import linkage, fcluster
+from scipy.spatial.distance import squareform
+Bu = np.array([[(p_ in r['boundaries']) for p_ in range(2, 31)] for r in rank])
+tvu = np.array([r['canon_ff_true'] for r in rank])
+Gu = np.array([r['G'] for r in rank])
+Dm = (Bu[:, None, :] != Bu[None, :, :]).sum(-1).astype(float)
+lab = fcluster(linkage(squareform(Dm, checks=False), 'average'), 2, 'maxclust')
+famA = lab == (1 if np.median(tvu[lab == 1]) < np.median(tvu[lab == 2]) else 2)
+
+fig, ax = plt.subplots(1, 3, figsize=(W1, 2.4), constrained_layout=True)
+
+for e in E[::4]:
+    ax[0].plot(g, np.maximum(e, 1e-2), color=GREY, lw=.35, alpha=.55)
+ax[0].fill_between(g, np.maximum(qe[0], 1e-2), qe[2], color=PRED, alpha=.20, lw=0)
+ax[0].plot(g, np.maximum(qe[1], 1e-2), color=PRED, lw=1.6)
+ax[0].set_yscale('log'); ax[0].set_ylim(.05, 3e4)
+ax[0].set_xlabel('generation')
+ax[0].set_ylabel('excess over own final value [%]')
+
+ax[1].plot(ecc, frac, color=OK, lw=1.6)
+ax[1].fill_between(ecc, 0, frac, color=OK, alpha=.15, lw=0)
+for x in (5, 16):
+    y = np.interp(x, ecc, frac)
+    ax[1].plot([x, x], [0, y], color=GREY, lw=.6, ls=':')
+    ax[1].plot([0, x], [y, y], color=GREY, lw=.6, ls=':')
+    ax[1].plot([x], [y], 'o', ms=3.5, color=OK)
+ax[1].set_xlim(0, 60); ax[1].set_ylim(0, 100)
+ax[1].set_xlabel('excess over the best structure [%]')
+ax[1].set_ylabel('searches within that excess [%]')
+
+rngj = np.random.default_rng(0)
+for m, c, lb in ((famA, OK, 'family A'), (~famA, TRUE, 'family B')):
+    ax[2].scatter(Gu[m] + rngj.uniform(-.22, .22, m.sum()), tvu[m], s=17, color=c,
+                  alpha=.85, edgecolor='white', lw=.3, label=lb, zorder=3)
+k = int(np.argmin(tvu))
+ax[2].plot([Gu[k]], [tvu[k]], marker='*', ms=11, color='#222', zorder=4)
 ax[2].set_yscale('log'); ax[2].set_xlabel('number of energy groups')
-ax[2].set_ylabel('joint fitness')
-ax[2].legend(handlelength=1.2, loc='upper right')
+ax[2].set_ylabel('joint fitness from the solver')
+ax[2].legend(loc='upper right', handlelength=1.0, scatterpoints=1)
+for a_ in ax:
+    a_.grid(alpha=.25, which='both')
 save('fig_search.pdf')
 
 # ══ Fig. — structure of the solutions ════════════════════════════════════

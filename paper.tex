@@ -601,26 +601,31 @@ them among themselves.
 \subsection{Behaviour of the Searches}
 
 The hundred searches produced 67 distinct structures, with a number of groups
-between 12 and 20. Figure~\ref{fig:search} shows their convergence on the common
-canonical scale, the distribution of the generation at which each search reaches
-within $1\%$ of its own final value, and the position of the outcomes in the
-plane of group count against fitness. A quarter of the searches finish within
-$5\%$ of the best predicted fitness and the median one is $15\%$ worse, which
-confirms the observation of Ref.~\cite{prevMulti} on a much larger sample: a
-single search returns a good structure with substantial probability, but which
-structure it returns is not determined by the problem alone.
-The next subsection makes this quantitative.
+between 12 and 20. Figure~\ref{fig:search} summarises their behaviour. Each
+search settles quickly: measured against its own final value, the median search
+is within $10\%$ of it by generation 21 and within $1\%$ by generation 33, and
+only seven searches out of a hundred are still improving after generation 90.
+Where they settle is another matter. Fifteen searches out of a hundred end
+within $5\%$ of the best structure and half of them end more than $16\%$ above
+it, so that a single search returns a good structure with substantial
+probability but not the best one, and which structure it returns is not
+determined by the problem alone. The outcomes also spread over nine different
+group counts and divide between the two families of solutions described below.
+This confirms the observation of Ref.~\cite{prevMulti} on a much larger sample,
+and the next subsection makes it quantitative.
 
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=150mm]{figs/fig_search.pdf}
-  \caption{Behaviour of the hundred independent searches. Left, best joint
-  fitness against generation, one line per search, with the median and the band
-  between the tenth and ninetieth percentiles. Centre, distribution of the
-  generation at which a search first comes within one per cent of its own final
-  value. Right, position of the outcomes in the plane of group count against
-  joint fitness, the arrows joining the value predicted by the metamodel to the
-  one obtained from the reference solver, for every distinct structure.}
+  \caption{Behaviour of the hundred independent searches. Left, distance of each
+  search from its own final value, generation by generation, as one faint line
+  every fourth search with the median and the band between the tenth and
+  ninetieth percentiles. Centre, fraction of the searches whose outcome lies
+  within a given excess over the best structure found, with the values at five
+  and sixteen per cent marked. Right, joint fitness returned by the reference
+  solver against the number of groups, one point per distinct structure with a
+  small horizontal jitter, coloured by family and with the best structure
+  starred.}
   \label{fig:search}
 \end{figure}
 
