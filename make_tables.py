@@ -54,7 +54,7 @@ never used in training nor for early stopping. The coefficient of determination
 is computed in the space in which the network is trained; the relative error is
 in physical units.}
 \label{tab:accuracy}
-\begin{tabular}{|lcc|lcc|}
+\begin{tabular}{lcc|lcc}
 \hline
 Output & $R^2$ & Rel.\ err.\ [\%%] & Output & $R^2$ & Rel.\ err.\ [\%%] \\ \hline''' % dat['n_ext'])
 N = R.OUTPUT_NAMES
@@ -87,7 +87,7 @@ are meaningful. The last line gives the scatter observed over five networks of
 identical architecture differing only in their random initialisation, which sets
 the scale below which a difference cannot be read.}
 \label{tab:ablation}
-\begin{tabular}{|l|c|c|c|}
+\begin{tabular}{lccc}
 \hline
 Architecture & Parameters & $R^2$ & Rel.\ err.\ [\%%] \\ \hline""" %
            f"{abl['protocol']['n_train']:,}".replace(',', r'\,'))
@@ -109,7 +109,7 @@ out.append(r"""
 the reactivity and kinetics fitness functions, and the measurement that rules
 each of them out.}
 \label{tab:hypotheses}
-\begin{tabular}{|p{2.9cm}|p{4.55cm}|p{4.55cm}|}
+\begin{tabular}{p{2.9cm}p{4.55cm}p{4.55cm}}
 \hline
 Hypothesis & Measurement & Outcome \\ \hline
 Noise in the labels & %s configurations simulated more than once &
@@ -151,7 +151,7 @@ obtained from the FRENETIC values through the fixed canonical window: unity is
 the best attainable value and 100 the worst. Six of the fifteen terms score
 unity for all four structures, a saturation discussed in Sec.~\\ref{sec:active}.}
 \label{tab:standard}
-\begin{tabular}{|l|''' + 'c|' * len(names) + r'''}
+\begin{tabular}{l''' + 'c' * len(names) + r'''}
 \hline
 ''' + hdr)
 prod = dict.fromkeys(names, 1.0)
@@ -178,7 +178,7 @@ joint fitness verified with the reference solver, and the variation of the
 reference flux shape within the groups, weighted by the total importance that
 appears in the flux fitness function.}
 \label{tab:families}
-\begin{tabular}{|c|c|c|}
+\begin{tabular}{ccc}
 \hline
 Boundary [MeV] & Family A [\%] & Family B [\%] \\ \hline''')
 for d_ in dsc:
@@ -214,9 +214,8 @@ the best structure found. The boundaries retained by more than nine structures
 out of ten form the consensus skeleton; those retained by fewer than one in ten
 are never used in practice.}
 \label{tab:boundaries}
-\begin{tabular}{|r|c|c|c||r|c|c|c|}
+\begin{tabular}{rccc|rccc}
 \hline
-\multicolumn{4}{|c||}{} & \multicolumn{4}{c|}{} \\[-2.2ex]
 $E$ [MeV] & Occ.\ [\%%] & Imp.\ [\%%] & Best &
 $E$ [MeV] & Occ.\ [\%%] & Imp.\ [\%%] & Best \\ \hline""" % len(ver['ranking']))
 for i in range(half):
@@ -242,7 +241,7 @@ out.append(r'''
 FRENETIC configuration (%d~s on %d cores). One tribe is a complete genetic
 search of %d individuals over %d generations.}
 \label{tab:cost}
-\begin{tabular}{|l|r|}
+\begin{tabular}{lr}
 \hline
 Item & Core-hours \\ \hline
 Building the metamodel (%s configurations, once) & %.0f \\
@@ -268,7 +267,7 @@ fitness; the worst output is the quantity on which the metamodel errs most for
 that structure. Over the whole set the rank correlation between predicted and
 true fitness is %.3f and the median disagreement is %.2f\%%.}
 \label{tab:ranking}
-\begin{tabular}{|r|r|c|c|r|l|}
+\begin{tabular}{rrccrl}
 \hline
 Rank & $G$ & True fitness & Predicted & Disagr.\ [\%%] & Worst output \\ \hline"""
            % (ver['n_verified'], ver['spearman_pred_true'], ver['accordo_mediano_pct']))
