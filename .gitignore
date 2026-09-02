@@ -8,3 +8,7 @@
 paper.pdf
 # template originale, non è nostro
 ans_template/
+
+# tabelle e figure sono rigenerate da make_tables.py / make_figures.py
+# ma vanno versionate: Overleaf compila senza Python
+tables.tex
