@@ -721,10 +721,24 @@ convenience of presentation.
 
 \subsection{Two Families of Solutions}
 
-The 67 distinct structures do not form a single group. Clustering them by
-Hamming distance separates two families of 32 and 35 structures whose mean
-internal distances are $4.6$ and $5.5$ boundaries against $10.4$ between them,
-and the searches divide almost equally between the two, 53 against 47. The separation is not a matter of group count,
+Comparing structures with one another requires a measure of how far apart two of
+them are, and the representation supplies a natural one. Of the 31 boundaries of
+the fine mesh the two extremes belong to every structure and carry no
+information, so that a structure is described by the 29 remaining ones as a
+string of 29 bits, each stating whether that boundary is retained. The distance
+between two structures is then the number of positions at which the two strings
+disagree, that is the number of boundaries present in one and absent from the
+other. Replacing one boundary by another therefore costs two units, one for the
+boundary removed and one for the boundary added, and two structures with a
+different number of groups are at least $|G_1-G_2|$ apart. Over the 67
+structures obtained here this distance ranges from one to seventeen, with a
+median of eight.
+
+Measured in this way, the 67 structures do not form a single group. Clustering
+them separates two families of 32 and 35 structures whose mean internal
+distances are $4.6$ and $5.5$ boundaries against $10.4$ between them, and the
+searches divide almost equally between the two, 53 against 47. The separation is
+not a matter of group count,
 since the two families span overlapping ranges of $G$, but of a coherent block
 of mutually exclusive choices in the fast region of the spectrum, as reported in
 Table~\ref{tab:families} and visible in the right panel of
@@ -769,10 +783,14 @@ blocks is preferable.
   \caption{Left, frequency with which each internal boundary of the fine mesh
   appears among the better searches, taken as the best forty per cent and
   plotted upward, and among the remaining ones, plotted downward, the dotted
-  vertical lines marking the boundaries of the best structure found. Right,
-  two-dimensional multidimensional scaling of the Hamming distance between the
-  distinct structures, coloured by joint fitness, the circled point being the
-  best structure.}
+  vertical lines marking the boundaries of the best structure found. Right, the
+  67 distinct structures placed on a plane by multidimensional scaling of their
+  boundary distances, coloured by joint fitness, the circled point being the best
+  structure. The two axes carry no meaning individually, since the method only
+  arranges the points so that their separations on the plane reproduce the
+  boundary distances as closely as possible; here the rank correlation between
+  the two is $0.91$, and only the relative proximity of the points is to be
+  read.}
   \label{fig:structure}
 \end{figure}
 
