@@ -17,6 +17,7 @@ meta = json.load(open('../final_model_hier_v2/metadata.json'))
 fin  = json.load(open(RES / 'final_scheme_100.json'))
 ver  = json.load(open(RES / 'verify_all_distinct.json'))
 abl  = json.load(open(RES / 'arch_ablation.json'))
+noi  = json.load(open(RES / 'arch_seed_noise.json'))
 bp   = json.load(open(RES / 'boundary_patterns.json'))
 std  = json.load(open(RES / 'baseline_standard.json'))
 stdv = json.load(open(RES / 'baseline_standard_valori.json'))
@@ -82,7 +83,9 @@ out.append(r"""
 %s configurations and with the same reduced protocol: one network per
 architecture, constant learning rate and early stopping. The absolute values are
 therefore higher than those of the final ensemble, and only their differences
-are meaningful.}
+are meaningful. The last line gives the scatter observed over five networks of
+identical architecture differing only in their random initialisation, which sets
+the scale below which a difference cannot be read.}
 \label{tab:ablation}
 \begin{tabular}{|l|c|c|c|}
 \hline
@@ -91,7 +94,10 @@ Architecture & Parameters & $R^2$ & Rel.\ err.\ [\%%] \\ \hline""" %
 for k in ORD:
     out.append(f"    {LBL[k]} & {ab[k]['n_params']/1e6:.2f}M & "
                f"{ab[k]['r2_ext_mean']:.4f} & {ab[k]['median_rel_err_pct']:.3f} \\\\")
-out.append(r'\hline' + '\n' + r'\end{tabular}' + '\n' + r'\end{table}')
+out.append(r'\hline')
+out.append(r'    \emph{Spread over five random initialisations} & & '
+           f"$\\pm${noi['r2_std']:.4f} & $\\pm${noi['err_std']:.2f} \\\\ \\hline")
+out.append(r'\end{tabular}' + '\n' + r'\end{table}')
 
 # ══ Tabella II — le tre ipotesi escluse ══════════════════════════════════
 dsm  = json.load(open(RES / 'diagnose_small.json'))['keff_CRin0']

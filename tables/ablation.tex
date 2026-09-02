@@ -4,7 +4,9 @@
 91\,723 configurations and with the same reduced protocol: one network per
 architecture, constant learning rate and early stopping. The absolute values are
 therefore higher than those of the final ensemble, and only their differences
-are meaningful.}
+are meaningful. The last line gives the scatter observed over five networks of
+identical architecture differing only in their random initialisation, which sets
+the scale below which a difference cannot be read.}
 \label{tab:ablation}
 \begin{tabular}{|l|c|c|c|}
 \hline
@@ -13,5 +15,6 @@ Architecture & Parameters & $R^2$ & Rel.\ err.\ [\%] \\ \hline
     Shared trunk, one neck per family & 0.90M & 0.9908 & 1.501 \\
     Shared trunk, family neck, configuration branch & 0.93M & 0.9905 & 1.494 \\
 \hline
+    \emph{Spread over five random initialisations} & & $\pm$0.0013 & $\pm$0.11 \\ \hline
 \end{tabular}
 \end{table}

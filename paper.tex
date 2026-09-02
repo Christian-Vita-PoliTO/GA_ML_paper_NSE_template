@@ -92,7 +92,7 @@ Carlo reference.
 \section{Introduction}
 
 Full-core deterministic simulations of fast reactors, and in particular the
-transient analyses, are performed on a
+transient analyses for which they are ultimately intended, are performed on a
 condensed energy mesh. The number of groups and the placement of their
 boundaries determine how faithfully the condensed calculation reproduces a
 Monte Carlo reference, and the dependence is neither smooth nor intuitive, since
@@ -126,12 +126,12 @@ the search space is combinatorial rather than continuous and contains
 $2^{29}\approx5.4\times10^{8}$ elements, on which no notion of gradient exists.
 The objective is the product of fifteen terms, each measuring the agreement of a
 different physical quantity in a different core configuration, and the terms do
-not respond in the same way to the displacement of a boundary e.g.: a change that
-improves the multiplication factor may worsen the flux distribution. A
-A measurement made on the available data quantifies how abrupt the
-resulting surface is. Among the structures available in this work, those differing by
-exactly one boundary have joint fitness values that differ by a median of $0.41$
-decades in the region of the best solutions, so that a single bit of the
+not respond in the same way to the displacement of a boundary: a change that
+improves the multiplication factor may worsen the flux distribution. How abrupt
+the resulting surface is can be measured on the available data. Among the
+structures computed in this work, those differing by exactly one boundary have
+joint fitness values that differ by a median of $0.41$ decades in the region of
+the best solutions, so that a single bit of the
 representation can move the objective by a factor of two and a half. A surface
 of this kind possesses many local optima separated by barriers that a
 population-based search crosses or does not cross depending on where it starts,
@@ -349,13 +349,32 @@ learning rate. Introducing the five family necks raises the mean coefficient of
 determination from $0.9848$ to $0.9908$ and lowers the median relative error
 from $1.75$ to $1.50\%$, at the price of a $29\%$ increase in the number of
 parameters. Adding the configuration branch below them changes neither figure
-appreciably, $0.9905$ and $1.49\%$, a difference smaller than the spread between
-random initialisations. The physical quantity, and not the core configuration,
-is therefore the dimension along which the fifteen outputs actually need
-separate parameters, which is consistent with the three configurations differing
-only in the position of the control rods. The configuration branch was retained
-in the production model, since it costs $3\%$ more parameters and does no harm,
-but the gain attributable to it is not measurable.
+appreciably, $0.9905$ and $1.49\%$.
+
+That second comparison deserves a quantitative statement rather than an
+impression, because the two architectures differ by four ten-thousandths in the
+coefficient of determination and by seven thousandths of a point in relative
+error, and such margins are meaningless unless the reproducibility of the
+training is known. It was therefore measured: five networks of identical
+architecture, trained with the identical protocol and differing only in the
+random initialisation of their weights, span a range of $0.0031$ in the
+coefficient of determination and of $0.24$ points in relative error, with
+standard deviations of $0.0013$ and $0.11$. The difference between the two
+architectures is thus four times smaller than the scatter between two runs of
+the same one, and fifteen times smaller on the relative error. The comparison of
+the fifteen outputs one by one leads to the same conclusion: the family necks
+improve twelve outputs out of fifteen with respect to the flat network, a
+consistent effect, while the configuration branch improves eight out of fifteen,
+which is what a coin toss would produce.
+
+The physical quantity, and not the core configuration, is therefore the
+dimension along which the fifteen outputs need separate parameters, and this is
+consistent with three configurations that differ only in the position of the
+control rods and share the same materials, the same geometry and the same fine
+mesh. The production model retains the configuration branch, which was already
+present when the ablation was performed and costs $3\%$ additional parameters,
+and the measurement gives no reason to retrain without it; it does, however,
+identify the family level as the one that carries the architectural gain.
 
 \input{tables/ablation.tex}
 
