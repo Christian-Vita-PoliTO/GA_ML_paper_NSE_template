@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\caption{Three candidate explanations for the residual error at small values of
+the reactivity and kinetics fitness functions, and the measurement that rules
+each of them out.}
+\label{tab:hypotheses}
+\begin{tabular}{p{2.9cm}p{4.55cm}p{4.55cm}}
+\hline
+Hypothesis & Measurement & Outcome \\ \hline
+Noise in the labels & 21\,440 configurations simulated more than once &
+Spread of $0.0000\%$ on all fifteen outputs; an independent re-run reproduces
+stored reference values to all digits \\ \hline
+Sparse data in that regime & Training points in the two extreme bands of the
+reference value, sampled by the same number of validation points &
+$13\,205$ points where the error is largest, $2.02\%$, against $5\,317$ where it is
+$0.62\%$ \\ \hline
+Input representation & 65 physics-informed descriptors appended to the
+30 inputs & The model becomes \emph{worse}: $0.460\%$ against $0.403\%$
+\\ \hline
+\end{tabular}
+\end{table}

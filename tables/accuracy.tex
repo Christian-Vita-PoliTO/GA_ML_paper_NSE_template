@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\caption{Metamodel accuracy on the external validation set, 1700 configurations
+never used in training nor for early stopping. The coefficient of determination
+is computed in the space in which the network is trained; the relative error is
+in physical units.}
+\label{tab:accuracy}
+\begin{tabular}{lcc|lcc}
+\hline
+Output & $R^2$ & Rel.\ err.\ [\%] & Output & $R^2$ & Rel.\ err.\ [\%] \\ \hline
+    beta\_CRin0 & 0.99575 & 0.189 & beta\_CRin55 & 0.99949 & 0.402 \\
+    beta\_CRout & 0.99565 & 0.174 & flux\_CRin0 & 0.99953 & 1.979 \\
+    flux\_CRin55 & 0.99953 & 2.291 & flux\_CRout & 0.99943 & 2.196 \\
+    keff\_CRin0 & 0.99713 & 0.484 & keff\_CRin55 & 0.97445 & 0.215 \\
+    keff\_CRout & 0.99926 & 0.816 & life\_CRin0 & 0.99718 & 0.849 \\
+    life\_CRin55 & 0.99385 & 0.903 & life\_CRout & 0.99399 & 0.860 \\
+    powr\_CRin0 & 0.99996 & 0.082 & powr\_CRin55 & 0.99996 & 0.059 \\
+    powr\_CRout & 0.99995 & 0.167 & & & \\ \hline
+    \textbf{Ensemble} & \textbf{0.99634} & \textbf{0.403} & & & \\ \hline
+\end{tabular}
+\end{table}

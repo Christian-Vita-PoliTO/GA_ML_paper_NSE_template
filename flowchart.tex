@@ -1,0 +1,101 @@
+% Flowchart del workflow. Riprende la struttura di quello del lavoro di
+% riferimento (Costantino et al.) per renderne immediato il confronto.
+% Convenzione grafica: cornice e frecce BLU = introdotto in questo lavoro;
+% cornice sottile grigia = ereditato dal workflow di riferimento;
+% blocco tratteggiato sbiadito = ciò che il metamodello ha sostituito.
+\begin{tikzpicture}[
+  font=\footnotesize,
+  node distance = 4.2mm and 7mm,
+  base/.style    = {rectangle, rounded corners=1pt, align=center, inner sep=3pt,
+                    minimum height=7.5mm, text width=32mm},
+  old/.style     = {base, draw=black!55, line width=.4pt},
+  new/.style     = {base, draw=newc, line width=1.1pt},
+  round/.style   = {rounded corners=3.2mm, fill=ga!55},
+  serp/.style    = {old, fill=serpent!55},
+  frenN/.style   = {new, fill=fren!45},
+  netN/.style    = {new, fill=nnc!40},
+  greyO/.style   = {old, fill=black!8},
+  greyN/.style   = {new, fill=black!8},
+  faded/.style   = {base, fill=black!4, draw=black!25, dashed, text=black!40,
+                    text width=27mm, minimum height=6mm},
+  dec/.style     = {diamond, aspect=1.9, draw=black!55, fill=ga!45, align=center,
+                    inner sep=0pt, text width=24mm, font=\scriptsize},
+  arO/.style     = {-{Latex[length=1.6mm]}, draw=black!65, line width=.45pt},
+  arN/.style     = {-{Latex[length=1.6mm]}, draw=newc, line width=.9pt},
+  lbl/.style     = {font=\scriptsize, inner sep=1.5pt},
+]
+
+% ── colonna sinistra: riferimento Monte Carlo (invariata) ────────────────
+\node[greyO] (fine) {fine-group homogenised\\constants (30 groups)};
+\node[serp, below=of fine] (serpent) {Serpent 2\\Monte Carlo};
+\node[greyO, below=of serpent] (ref) {reference output\\$k_\mathrm{eff}$, $P$, $\Phi$,
+  $\Lambda_\mathrm{eff}$, $\beta_\mathrm{eff}$};
+
+% ── addestramento del metamodello (nuovo) ───────────────────────────────
+\node[frenN, below=8mm of ref] (train) {FRENETIC (NE module)\\$91\,723$ full-core\\evaluations};
+\node[netN, below=of train] (nn) {\textbf{neural metamodel}\\hierarchical ensemble};
+
+\draw[arO] (fine) -- (serpent);
+\draw[arO] (serpent) -- (ref);
+\draw[arN] (ref) -- (train);
+\draw[arN] (train) -- node[lbl, right] {training} (nn);
+
+% ── ciclo genetico ──────────────────────────────────────────────────────
+\node[old, round, right=30mm of fine] (gen) {generate $N$ individuals};
+\node[netN, below=of gen] (eval) {\textbf{evaluate the whole\\population at once}};
+\node[new, round, fill=ga!55, below=of eval] (ff) {joint FF with\\fixed scaling};
+\node[old, round, below=of ff] (sel) {selection};
+\node[old, round, below=of sel] (cross) {crossover};
+\node[old, round, below=of cross] (mut) {mutation};
+\node[dec, below=5mm of mut] (term) {termination\\satisfied?};
+
+\draw[arN] (gen) -- (eval);
+\draw[arN] (eval) -- (ff);
+\draw[arO] (ff) -- (sel);
+\draw[arO] (sel) -- (cross);
+\draw[arO] (cross) -- (mut);
+\draw[arO] (mut) -- (term);
+\draw[arN] (nn.east) -- ++(6mm,0) |- (eval.west);
+\draw[arO] (ref.east) -- ++(3mm,0) |- (ff.west);
+\draw[arO] (term.east) -- ++(7mm,0) node[lbl, above right, xshift=-6mm] {no}
+          |- ([yshift=2mm]eval.east) -- (eval.east);
+
+% ── ciò che il metamodello ha sostituito ────────────────────────────────
+\node[faded, right=30mm of eval, yshift=6.5mm] (old1) {C++/Python coupling};
+\node[faded, below=2.5mm of old1] (old2) {input generation};
+\node[faded, below=2.5mm of old2] (old3) {one solver call\\per individual};
+\node[draw=black!25, dashed, rounded corners=1.5pt, inner sep=2.5mm,
+      fit=(old1)(old3)] (deadbox) {};
+\node[lbl, above=1.2mm of deadbox, text=black!45, align=center, text width=34mm]
+     {replaced by the metamodel};
+\draw[dashed, draw=black!35, line width=.5pt] (eval.east) -- (deadbox.west);
+
+% ── multi-start e giudizio finale (nuovi) ───────────────────────────────
+\node[old, round, below=6mm of term] (tribe) {tribe completed};
+\node[new, round, fill=ga!55, below=of tribe] (many) {$100$ independent\\tribes};
+\node[new, round, fill=ga!55, below=of many] (rank) {distinct candidates,\\ranked by fitness};
+\node[frenN, below=of rank] (verify) {\textbf{FRENETIC (NE module)}\\verification of the\\best candidates};
+\node[greyN, below=of verify] (out) {final ranking\\optimized structure};
+
+\draw[arO] (term) -- node[lbl, right] {yes} (tribe);
+\draw[arN] (tribe) -- (many);
+\draw[arN] (many) -- (rank);
+\draw[arN] (rank) -- (verify);
+\draw[arN] (verify) -- (out);
+\draw[arN] (many.west) -- ++(-7mm,0) |- node[lbl, left, pos=.25] {new seed} (gen.west);
+
+% ── legenda ─────────────────────────────────────────────────────────────
+\node[new, fill=white, below left=14mm and -32mm of out, text width=3mm,
+      minimum height=3mm, inner sep=0pt] (lg1) {};
+\node[lbl, right=1.5mm of lg1, anchor=west] {introduced in this work};
+\node[old, fill=white, below=2.5mm of lg1, text width=3mm,
+      minimum height=3mm, inner sep=0pt] (lg2) {};
+\node[lbl, right=1.5mm of lg2, anchor=west] {inherited from the reference workflow};
+\node[faded, below=2.5mm of lg2, text width=3mm, minimum height=3mm, inner sep=0pt] (lg3) {};
+\node[lbl, right=1.5mm of lg3, anchor=west, text=black!45]
+     {no longer required};
+
+\begin{scope}[on background layer]
+  \node[fill=ga!12, rounded corners=2mm, fit=(gen)(term)(mut), inner sep=3.5mm] {};
+\end{scope}
+\end{tikzpicture}
